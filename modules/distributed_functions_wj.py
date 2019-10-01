@@ -2,6 +2,10 @@
 import numpy as np
 from numpy.random import *
 import matplotlib.pyplot as plt
+<<<<<<< HEAD
+=======
+import numpy.linalg as LA
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 
 #np.random.seed(0)
 
@@ -50,6 +54,49 @@ class functions():
 		if lamb/rho <= eta*lamb:
 			print("faulty rho")
 			exit()
+<<<<<<< HEAD
+=======
+	
+	def U_eigenvalue(self,U_all):
+		square = U_all.T@U_all
+		eigenvalue = LA.eig(square)[0]
+		smallest_eigen = min(eigenvalue)
+		biggest_eigen = max(eigenvalue)
+		return smallest_eigen,biggest_eigen
+	
+	def params_checker(self,rho,lamb,eta,U_all,B,m,N):
+		small_eig, big_eig = self.U_eigenvalue(U_all)
+		if rho > small_eig:
+			print("rho is bigger than the smallest eigen")
+			exit()
+		elif eta < 2/big_eig:
+			print("eta may be too big")
+		self.rho_checker(rho,lamb,eta)
+		self.lipschitz_checker(U_all,B,m,eta)
+		self.distributed_lipschitz_checker(U_all,B,m,eta,N)
+	
+	def lipschitz_checker(self,U,B,m,eta):
+		X = U@U.T-(B)*np.eye(m)
+		U, s, V = np.linalg.svd(X)
+		lpz = max(s)
+		if lpz/2 < eta:
+			print(f"eta must be smaller than {lpz/2}")
+			exit()
+	
+	def distributed_lipschitz_checker(self,U,B,m,eta,N):
+		for u in U:
+			ut = np.reshape(u,(len(u),1)) 
+			um = np.reshape(u,(1,len(u)))
+			x = ut@um-(B**2)*np.eye(N)
+			U, s, V = np.linalg.svd(x)
+			lpz = max(LA.eig(x)[0])
+			lpz = max(s)/2
+			print(lpz)
+			if lpz < eta:
+				print(f"eta must be smaller than {lpz/2}")
+				exit()
+
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 
 	def directed_graph(self,m,r_i):
 		c = np.eye(m) 
@@ -171,10 +218,17 @@ class functions():
 			result += row
 		result = result/len(w_all)
 		x = range(len(result))
+<<<<<<< HEAD
 		#fig = plt.figure()
 		#plt.plot(x,w_star,color = "black",label = "w_star")
 		#plt.plot(x,result,color = "red",label = "w_average")
 		#plt.show()
+=======
+		fig = plt.figure()
+		plt.plot(x,w_star,color = "black",label = "w_star")
+		plt.plot(x,result,color = "red",label = "w_average")
+		plt.show()
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 		return result
 	
 	def make_w(self,m,N):
@@ -183,6 +237,21 @@ class functions():
 			w = np.concatenate((w,randn(N,1).T))
 		return w
 
+<<<<<<< HEAD
+=======
+	def make_variables(self,N,m,sparsity_percentage,how_weakly_sparse,w_noise):
+		w = randn(N,1)
+		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
+		#w_star = w_star(N,sparsity_percentage)
+		U_all = randn(m,N)
+		w_star_noise = w_star +randn(N,1)*(10**-(w_noise/10))
+		#w_star_noise = w_star_noise/np.dot(w_star_noise.T,w_star_noise)
+		d_all = np.dot(U_all,w_star_noise)
+		L2 = np.dot(w_star.T,w_star)
+
+		return w,w_star,U_all,d_all,L2
+
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 	def centralized_gradient_descent(self,Ut,d,w,w_star,L2,eta,iteration):
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
 		times = [0]
@@ -231,7 +300,11 @@ class functions():
 				elif lamb/rho <= abs(w[j]):
 					w[j] = w[j]
 				else:
+<<<<<<< HEAD
 					print("banana")
+=======
+					print("eta*lamb",eta*lamb,"lamb/rho =",lamb/rho,"w = ",w[j])
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 			one_error = np.dot((w-w_star).T,w-w_star)[0]
 			error.append(self.db(one_error,L2))
 			times.append(i+1)
@@ -304,9 +377,48 @@ class functions():
 			average_error[i+1] = average_error[i+1]/m
 		plt.plot(times,average_error,label = 'distributed gradient descent')
 		plt.legend()
+<<<<<<< HEAD
 		exec("w_average = self.w_average(w_all,w_star)")		
 		return average_error,w_all_f
 
+=======
+		return average_error,w_all_f
+
+	"""def distributed_gradient_descent2(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all_f):
+		average_error = [0]
+		w = self.make_w(m,N)
+		w_next = w
+		for i in range(1,m+1,1):
+			exec("u_%d = Ut[%d]" % (i,i-1))
+			exec("d_%d = d[%d][0]" % (i,i-1))
+			exec("w_%d = np.reshape(w_all_f[%d],(N,1)).ravel() " % (i,i-1))
+			exec("w_next_%d = w_%d" % (i,i))
+			exec("error_w_%d = []" % (i))
+			exec("one_error_%d =[]" % (i))
+			exec("average_error[0] += self.db(np.dot((w_%d-w_star.ravel()).T,w_%d-w_star.ravel()),L2)"%(i,i))
+		average_error[0] = average_error[0]/m
+		times = [0]
+		for i in range(iteration):
+			for j in range(1,m+1,1):
+				w[j] = self.one_gradient_descent(Ut[j],d[j][0],np.reshape(w_all_f[j],(N,1)).ravel(),eta)
+				w_next[j] = w[j]
+			exec("average = (1/(r_i+1))*np.dot(c,w_next)")
+			w = average
+			for j in range(1,m+1,1):
+				exec("one_error_%d = np.dot((w_%d-w_star.ravel()).T,w_%d-w_star.ravel())" % (j,j,j))
+				exec("error_w_%d.append(self.db(one_error_%d,L2))" % (j,j))
+			times.append(i+1)
+		exec("w_all_f = w_all")
+		for i in range(iteration):
+			exec("average_error.append(error_w_1[%d])" % (i))
+			for j in range(2,m+1,1):
+				exec("average_error[%d] += error_w_%d[%d]" % (i+1,j,i))
+			average_error[i+1] = average_error[i+1]/m
+		plt.plot(times,average_error,label = 'distributed gradient descent')
+		plt.legend()
+		return average_error,w_all_f"""
+
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 	def distributed_L1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,iteration,c,w_all_f):	
 		average_error = [0]
 		for i in range(1,m+1,1):
@@ -341,7 +453,10 @@ class functions():
 			average_error[i+1] = average_error[i+1]/m
 		plt.plot(times,average_error,label = 'distributed L1')
 		plt.legend()
+<<<<<<< HEAD
 		exec("w_average = self.w_average(w_all,w_star)")
+=======
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 		return average_error
 
 	def distributed_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all_f):
@@ -380,7 +495,10 @@ class functions():
 		#	exec("plt.plot(times,error_w_%d)"%(i))
 		plt.plot(times,average_error,label = 'distributed mc')
 		plt.legend()
+<<<<<<< HEAD
 		exec("w_average = self.w_average(w_all,w_star)")		
+=======
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 		return average_error
 
 	def distributed_gradient_descent_wj(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all_f,wj):
@@ -417,7 +535,10 @@ class functions():
 				exec("average_error[%d] += error_w_%d[%d]" % (i+1,j,i))
 			average_error[i+1] = average_error[i+1]/m
 		exec("plt.plot(times,average_error,label = 'wj distributed gradient descent')")
+<<<<<<< HEAD
 		exec("w_average = self.w_average(w_all,wj)")		
+=======
+>>>>>>> bd7fd769a1864b8fc9cade4e0229cedb02533b04
 		return average_error
 
 	def distributed_L1_wj(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,iteration,c,w_all_f,wj):	
