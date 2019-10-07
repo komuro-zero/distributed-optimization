@@ -60,7 +60,7 @@ class functions():
 		biggest_eigen = max(eigenvalue)
 		return smallest_eigen,biggest_eigen
 	
-	def params_checker(self,rho,lamb,eta,U_all,B,m,N):
+	def params_checker(self,rho,lamb,eta,U_all,B,m,N,graph):
 		small_eig, big_eig = self.U_eigenvalue(U_all)
 		if rho > small_eig:
 			print("rho is bigger than the smallest eigen",small_eig)
@@ -70,6 +70,7 @@ class functions():
 		self.rho_checker(rho,lamb,eta)
 		self.lipschitz_checker(U_all,B,m,eta,lamb)
 		self.distributed_lipschitz_checker(U_all,B,m,eta,N,lamb)
+		self.disjoint_checker(graph,m)
 	
 	def lipschitz_checker(self,U,B,m,eta,lamb):
 		X = U@U.T-(B**2)*lamb*np.eye(m)
@@ -175,19 +176,19 @@ class functions():
 		return result
 
 	def undirected_graph(self,m,r_i):
-		c = np.eye(m)
+		graph = np.eye(m)
 		checklist = self.make_checklist(r_i,m)
 		for i in range(m):
-			connected = sum(x == 1 for x in c[i])
+			connected = sum(x == 1 for x in graph[i])
 			while connected < r_i:
 				select = np.random.randint(len(checklist))
 				connect_node = checklist[select]
-				if c[i][connect_node] != 1 and self.horizontal_checker(c,connect_node,r_i):
-					c[i][connect_node] = 1
+				if graph[i][connect_node] != 1 and self.horizontal_checker(graph,connect_node,r_i):
+					graph[i][connect_node] = 1
 					connected += 1
-					c[connect_node][i] =1
+					graph[connect_node][i] =1
 					checklist.pop(select)
-		return c
+		return graph
 
 	def find_ones(self,row):
 		result = [i for i, element in enumerate(row) if element == 1]
@@ -204,8 +205,8 @@ class functions():
 			all_connection[i].remove(i)
 		return all_connection
 
-	def disjoint_checker(self,c,m):
-		c_list = c.tolist()
+	def disjoint_checker(self,graph,m):
+		c_list = graph.tolist()
 		all_connection = self.all_connections(c_list)
 		adjacent_matrix = self.delete_self(all_connection)
 		check_node = adjacent_matrix[0]
@@ -265,7 +266,7 @@ class functions():
 
 		return w,w_star,U_all,d_all,L2
 
-	def make_variables_noise_after(self,N,m,sparsity_percentage,how_weakly_sparse,w_noise):
+	def make_variables_noise_after(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
 		w = randn(N,1)
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
 		#w_star = w_star(N,sparsity_percentage)
@@ -273,8 +274,10 @@ class functions():
 		d_all = np.dot(U_all,w_star)
 		d_all += d_all*randn(m,1)*(10**-(w_noise/10))
 		L2 = np.dot(w_star.T,w_star)
+		graph = self.undirected_graph(m,r_i)
+		w_all = self.make_w(m,N)
+		return w,w_star,w_all,U_all,d_all,L2,graph
 
-		return w,w_star,U_all,d_all,L2
 	def centralized_gradient_descent(self,Ut,d,w,w_star,L2,eta,iteration):
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
 		times = [0]
@@ -334,6 +337,7 @@ class functions():
 	def one_gradient_descent(self,Ut,d,w,eta):
 		U = Ut.T
 		w = w - 2*eta*((U*(np.dot(Ut,w)-d)))
+
 		return w
 
 	def one_L1(self,Ut,d,w,lamb,eta):
@@ -398,26 +402,21 @@ class functions():
 		plt.legend()
 		return average_error,w_all_f
 
-	"""def distributed_gradient_descent2(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all_f):
+	def distributed_gradient_descent_2(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all_f):
 		average_error = [0]
-		w = self.make_w(m,N)
-		w_next = w
-		for i in range(1,m+1,1):
-			exec("u_%d = Ut[%d]" % (i,i-1))
-			exec("d_%d = d[%d][0]" % (i,i-1))
-			exec("w_%d = np.reshape(w_all_f[%d],(N,1)).ravel() " % (i,i-1))
-			exec("w_next_%d = w_%d" % (i,i))
-			exec("error_w_%d = []" % (i))
-			exec("one_error_%d =[]" % (i))
-			exec("average_error[0] += self.db(np.dot((w_%d-w_star.ravel()).T,w_%d-w_star.ravel()),L2)"%(i,i))
-		average_error[0] = average_error[0]/m
-		times = [0]
+		w_all_next = w_all_f
+		w_all = w_all_f
+		
 		for i in range(iteration):
+			for j in range(m):
+				exec("w_%d = self.one_gradient_descent(u_%d,d_%d,w_%d,eta)" % (j,j,j,j))
+				w_all_next = self.one_gradient_descent(Ut[i],d[i],w_all[i],eta)
+			exec("w_all = [w_next_1]")
+			for j in range(2,m+1):
+				exec("w_all = np.concatenate((w_all,[w_next_%d]))" %(j))
+			exec("average = (1/(r_i+1))*np.dot(c,w_all)")
 			for j in range(1,m+1,1):
-				w[j] = self.one_gradient_descent(Ut[j],d[j][0],np.reshape(w_all_f[j],(N,1)).ravel(),eta)
-				w_next[j] = w[j]
-			exec("average = (1/(r_i+1))*np.dot(c,w_next)")
-			w = average
+				exec("w_%d = average[%d]" % (j,j-1))
 			for j in range(1,m+1,1):
 				exec("one_error_%d = np.dot((w_%d-w_star.ravel()).T,w_%d-w_star.ravel())" % (j,j,j))
 				exec("error_w_%d.append(self.db(one_error_%d,L2))" % (j,j))
@@ -430,7 +429,7 @@ class functions():
 			average_error[i+1] = average_error[i+1]/m
 		plt.plot(times,average_error,label = 'distributed gradient descent')
 		plt.legend()
-		return average_error,w_all_f"""
+		return average_error,w_all_f
 
 	def distributed_L1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,iteration,c,w_all_f):	
 		average_error = [0]
@@ -613,3 +612,4 @@ class functions():
 			average_error[i+1] = average_error[i+1]/m
 		exec("plt.plot(times,average_error,label = 'wj distributed mc')")
 		return average_error
+
