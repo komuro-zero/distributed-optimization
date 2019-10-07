@@ -29,9 +29,10 @@ class functions():
 		for i in range(len(w_star)):
 			if w_star[i] == 0:
 				w_star_prox[i] = randn()
-		w_star_prox = w_star_prox/np.dot(w_star_prox.T,w_star_prox)
-		w_star = w_star/np.dot(w_star.T,w_star)
+		w_star_prox = w_star_prox/np.linalg.norm(w_star_prox)
+		w_star = w_star/np.linalg.norm(w_star)
 		w_star += how_weak*w_star_prox
+		w_star = w_star/np.linalg.norm(w_star)		
 		return w_star
 	
 	def w_star_weakly_sparse_sample(self,N,sparse_percentage):
@@ -62,35 +63,63 @@ class functions():
 	def params_checker(self,rho,lamb,eta,U_all,B,m,N):
 		small_eig, big_eig = self.U_eigenvalue(U_all)
 		if rho > small_eig:
-			print("rho is bigger than the smallest eigen")
+			print("rho is bigger than the smallest eigen",small_eig)
 			exit()
-		elif eta < 2/big_eig:
+		elif eta > 2/big_eig:
 			print("eta may be too big")
 		self.rho_checker(rho,lamb,eta)
-		self.lipschitz_checker(U_all,B,m,eta)
-		self.distributed_lipschitz_checker(U_all,B,m,eta,N)
+		self.lipschitz_checker(U_all,B,m,eta,lamb)
+		self.distributed_lipschitz_checker(U_all,B,m,eta,N,lamb)
 	
-	def lipschitz_checker(self,U,B,m,eta):
-		X = U@U.T-(B)*np.eye(m)
+	def lipschitz_checker(self,U,B,m,eta,lamb):
+		X = U@U.T-(B**2)*lamb*np.eye(m)
 		U, s, V = np.linalg.svd(X)
-		lpz = max(s)
-		if lpz/2 < eta:
+		lpz = 2/max(s)
+		if lpz < eta:
 			print(f"eta must be smaller than {lpz/2}")
 			exit()
 	
-	def distributed_lipschitz_checker(self,U,B,m,eta,N):
+	def lipschitz_checker_L1(self,U,m,eta,lamb):
+		X = U@U.T
+		U, s, V = np.linalg.svd(X)
+		lpz = 2/max(s)
+		if lpz < eta:
+			print(f"eta must be smaller than {lpz/2}")
+			exit()
+	
+	def distributed_lipschitz_checker(self,U,B,m,eta,N,lamb):
 		for u in U:
 			ut = np.reshape(u,(len(u),1)) 
 			um = np.reshape(u,(1,len(u)))
-			x = ut@um-(B**2)*np.eye(N)
+			x = ut@um-(B**2)*lamb*np.eye(N)
 			U, s, V = np.linalg.svd(x)
-			lpz = max(LA.eig(x)[0])
-			lpz = max(s)/2
-			print(lpz)
+			lpz = 2/max(s)
 			if lpz < eta:
-				print(f"eta must be smaller than {lpz/2}")
+				print(f"eta must be smaller than {lpz}")
 				exit()
 
+	def centralized_convexity_checker(self,B,lamb,U,N):
+		B2 = B*B*np.eye(N)
+		x = (1/lamb)*np.dot(U.T,U)-B2
+		small_eig =  min(LA.eig(x)[0])
+		if small_eig < 0:
+			print(f"your smallest eigenvalue is {small_eig}. it is nonconvex.")
+		else:
+			print("your function is convex. go fuck yourself")
+			exit()
+
+	def distributed_convexity_checker(self,B,lamb,U,N):
+		for u in U:
+			B2 = B*B*np.eye(N)
+			ut = np.reshape(u,[N,1])
+			u = np.reshape(u,[1,N])
+			x = (1/lamb)*np.dot(ut,u)-B2
+			small_eig =  min(LA.eig(x)[0])
+			if small_eig < 0:
+				print(f"your smallest eigenvalue is {small_eig}. it is nonconvex.")
+			else:
+				print("your function is convex. go fuck yourself")
+				exit()
 
 	def directed_graph(self,m,r_i):
 		c = np.eye(m) 
@@ -236,13 +265,23 @@ class functions():
 
 		return w,w_star,U_all,d_all,L2
 
+	def make_variables_noise_after(self,N,m,sparsity_percentage,how_weakly_sparse,w_noise):
+		w = randn(N,1)
+		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
+		#w_star = w_star(N,sparsity_percentage)
+		U_all = randn(m,N)
+		d_all = np.dot(U_all,w_star)
+		d_all += d_all*randn(m,1)*(10**-(w_noise/10))
+		L2 = np.dot(w_star.T,w_star)
+
+		return w,w_star,U_all,d_all,L2
 	def centralized_gradient_descent(self,Ut,d,w,w_star,L2,eta,iteration):
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
 		times = [0]
 		one_error =0
 		U = Ut.T
 		for i in range(iteration):
-			w = w - 2*eta*(np.dot(U,(np.dot(Ut,w)-d)))
+			w = w - eta*(np.dot(U,(np.dot(Ut,w)-d)))
 			one_error = np.dot((w-w_star).T,w-w_star)[0]
 			error.append(self.db(one_error,L2))
 			times.append(i+1)
@@ -255,12 +294,12 @@ class functions():
 		one_error =0
 		U = Ut.T
 		for i in range(iteration):
-			w = w - 2*eta*(np.dot(U,(np.dot(Ut,w)-d)))
+			w = w - eta*(np.dot(U,(np.dot(Ut,w)-d)))
 			for j in range(len(w)):
-				if w[j] > 0 and lamb < abs(w[j]):
-					w[j] -= lamb
-				elif w[j] < 0 and lamb < abs(w[j]):
-					w[j] += lamb
+				if w[j] > 0 and eta*lamb < abs(w[j]):
+					w[j] -= eta*lamb
+				elif w[j] < 0 and eta*lamb < abs(w[j]):
+					w[j] += eta*lamb
 				else:
 					w[j] = 0
 			one_error = np.dot((w-w_star).T,w-w_star)[0]
@@ -275,7 +314,7 @@ class functions():
 		one_error =0
 		U = Ut.T
 		for i in range(iteration):
-			w = w - 2*eta*(np.dot(U,(np.dot(Ut,w)-d)))
+			w = w - eta*(np.dot(U,(np.dot(Ut,w)-d)))
 			for j in range(len(w)):
 				if abs(w[j]) < eta*lamb:
 					w[j] = 0
@@ -301,10 +340,10 @@ class functions():
 		U = Ut.T
 		w = w - 2*eta*((U*(np.dot(Ut,w)-d)))
 		for j in range(len(w)):
-			if w[j] > 0 and lamb < abs(w[j]):
-				w[j] -= lamb
-			elif w[j] < 0 and lamb < abs(w[j]):
-				w[j] += lamb
+			if w[j] > 0 and eta*lamb < abs(w[j]):
+				w[j] -= eta*lamb
+			elif w[j] < 0 and eta*lamb < abs(w[j]):
+				w[j] += eta*lamb
 			else:
 				w[j] = 0
 		return w
