@@ -39,35 +39,24 @@ class distributed_updates(functions):
         #self.distributed_L1_wj(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-3,0.21,self.iteration,graph,w_all,wcl1)
         #self.distributed_mc_wj(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((12)**2),self.iteration,graph,w_all,wcmc)
         self.distributed_gradient_descent_2(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.255,self.iteration,graph,w_all)
-        #self.distributed_L1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,5*10**-4,0.25,self.iteration,graph,w_all)
-        #self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
+        self.distributed_gradient_descent(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.255,self.iteration,graph,w_all)
+        self.distributed_L1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,5*10**-4,0.25,self.iteration,graph,w_all)
+        self.distributed_L1_2(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,5*10**-4,0.25,self.iteration,graph,w_all)
+        self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
+        self.distributed_mc_2(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
         #self.distributed_convexity_checker(self.B,self.lamb/self.m,U_all,self.N)
         #self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
         #self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
         
         plt.legend()
         plt.show()
-        x  = range(len(wcgd))
-        plt.plot(x,wcgd,label = "LMS")
-        plt.plot(x,wcl1,label = "L1")
-        plt.plot(x,wcmc,label = "mc")
-        plt.plot(x,w_star,color = "black")
-        plt.legend()
-        plt.show()
-"""
-    #not completed
-    def run_distributed(self):
-        w,w_star,U_all,d_all,L2 = self.make_variables()  
-
-        lamb_l1 = 9*10**-5
-        lamb_mc = 10**-3
-        eta_gd = 0.1
-        eta_l1 = 0.09
-        eta_mc = 0.01
-
-        self.distributed(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,lamb_l1,lamb_mc,eta_gd,eta_l1,eta_mc,self.rho,self.iteration)
-"""
-
+        # x  = range(len(wcgd))
+        # plt.plot(x,wcgd,label = "LMS")
+        # plt.plot(x,wcl1,label = "L1")
+        # plt.plot(x,wcmc,label = "mc")
+        # plt.plot(x,w_star,color = "black")
+        # plt.legend()
+        # plt.show()
 
 if __name__ == "__main__":
     simulation = distributed_updates()

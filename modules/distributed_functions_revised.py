@@ -3,29 +3,29 @@ import numpy as np
 from numpy.random import *
 import matplotlib.pyplot as plt
 import numpy.linalg as LA
-
+import copy
 
 #np.random.seed(0)
 
 class functions():
 	def w_star(self,N,sparse_percentage):
-		w_star = randn(N,1)     #平均は0
+		w_star = randn(N,1)     
 		before_length = len(w_star)
 		after_length = before_length
 		while (after_length / before_length) > sparse_percentage:
 			a = randint(0,N-1)  
 			w_star[a] = 0
-			after_length = len(np.unique(w_star))-1  #重複要素の削除
+			after_length = len(np.unique(w_star))-1  
 		return w_star
 	
 	def w_star_weakly_sparse(self,N,sparse_percentage,how_weak):
-		w_star = randn(N,1)     #平均は0
+		w_star = randn(N,1)     
 		before_length = len(w_star)
 		after_length = before_length
 		while (after_length / before_length) > sparse_percentage:
 			a = randint(0,N-1)  
 			w_star[a] = 0
-			after_length = len(np.unique(w_star))-1  #重複要素の削除
+			after_length = len(np.unique(w_star))-1  
 		w_star_prox = np.zeros((len(w_star),1))
 		for i in range(len(w_star)):
 			if w_star[i] == 0:
@@ -47,7 +47,7 @@ class functions():
 
 	def db(self,x, y):
 		db = 10 * np.log10(x / y)    
-		return db[0][0]
+		return db
 
 	def rho_checker(self,rho,lamb,eta):
 		if lamb/rho <= eta*lamb:
@@ -107,18 +107,18 @@ class functions():
 		if small_eig < 0:
 			print(f"your smallest eigenvalue is {small_eig}. it is nonconvex.")
 		else:
-			print("your function is convex. go fuck yourself")
-			exit()
+			print("your function is centrally convex. go fuck yourself")
 
 	def distributed_convexity_checker(self,B,lamb,U,N):
 		for u in U:
 			B2 = B*B*np.eye(N)
 			ut = np.reshape(u,[N,1])
 			u = np.reshape(u,[1,N])
-			x = (1/lamb)*np.dot(ut,u)-B2
+			x = (N/lamb)*np.dot(ut,u)-B2
 			small_eig =  min(LA.eig(x)[0])
 			if small_eig < 0:
-				print(f"your smallest eigenvalue is {small_eig}. it is nonconvex.")
+				#print(f"your smallest eigenvalue is {small_eig}. it is nonconvex.")
+				pass
 			else:
 				print("your function is convex. go fuck yourself")
 				exit()
@@ -266,7 +266,7 @@ class functions():
 	def make_variables(self,N,m,sparsity_percentage,how_weakly_sparse,w_noise):
 		w = randn(N,1)
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
-		#w_star = w_star(N,sparsity_percentage)
+		#w_star = self.w_star(N,sparsity_percentage)
 		U_all = randn(m,N)
 		w_star_noise = w_star +randn(N,1)*(10**-(w_noise/10))
 		#w_star_noise = w_star_noise/np.dot(w_star_noise.T,w_star_noise)
@@ -278,15 +278,25 @@ class functions():
 	def make_variables_noise_after(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
 		w = randn(N,1)
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
-		#w_star = w_star(N,sparsity_percentage)
 		U_all = randn(m,N)
 		d_all = np.dot(U_all,w_star)
 		d_all += d_all*randn(m,1)*(10**-(w_noise/10))
-		L2 = np.dot(w_star.T,w_star)
+		L2 = np.dot(w_star.T,w_star)[0][0]
 		graph = self.undirected_graph(m,r_i)
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 
+	def make_variables_no_noise(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
+		w = randn(N,1)
+		w_star = self.w_star(N,sparsity_percentage)
+		print(w_star)
+		U_all = randn(m,N)
+		d_all = np.dot(U_all,w_star)
+		L2 = np.dot(w_star.T,w_star)[0][0]
+		graph = self.undirected_graph(m,r_i)
+		w_all = self.make_w(m,N)
+		return w,w_star,w_all,U_all,d_all,L2,graph
+	
 	def centralized_gradient_descent(self,Ut,d,w,w_star,L2,eta,iteration):
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
 		times = [0]
@@ -390,248 +400,52 @@ class functions():
 			w_next[i] = self.one_mc(Ut[i],d[i],w_all[i],lamb,eta,rho)
 		return w_next
 
-	def distributed_gradient_descent(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all_f):
-		average_error = [0]
-		for i in range(1,m+1,1):
-			exec("u_%d = Ut[%d]" % (i,i-1))
-			exec("d_%d = d[%d][0]" % (i,i-1))
-			exec("w_%d = np.reshape(w_all_f[%d],(N,1)).ravel() " % (i,i-1))
-			exec("w_next_%d = w_%d" % (i,i))
-			exec("error_w_%d = []" % (i))
-			exec("one_error_%d =[]" % (i))
-		times = [0]
-		for i in range(iteration):
-			for j in range(1,m+1,1):
-				exec("one_error_%d = np.dot((w_%d-w_star.ravel()).T,w_%d-w_star.ravel())" % (j,j,j))
-				exec("error_w_%d.append(self.db(one_error_%d,L2))" % (j,j))
-			for j in range(1,m+1,1):
-				exec("w_%d = self.one_gradient_descent(u_%d,d_%d,w_%d,eta)" % (j,j,j,j))
-				exec("w_next_%d = w_%d" % (j,j))
-			exec("w_all = [w_next_1]")
-			for j in range(2,m+1):
-				exec("w_all = np.concatenate((w_all,[w_next_%d]))" %(j))
-			exec("average = (1/(r_i+1))*np.dot(c,w_all)")
-			for j in range(1,m+1,1):
-				exec("w_%d = average[%d]" % (j,j-1))
-
-			times.append(i+1)
-		exec("w_all_f = w_all")
-		for i in range(iteration):
-			exec("average_error.append(error_w_1[%d])" % (i))
-			for j in range(2,m+1,1):
-				exec("average_error[%d] += error_w_%d[%d]" % (i+1,j,i))
-			average_error[i+1] = average_error[i+1]/m
-		plt.plot(times,average_error,label = 'distributed gradient descent')
-		return average_error,w_all_f
-
-	def distributed_gradient_descent_2(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all_f):
+	def distributed_gradient_descent(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all):
 		average_error = []
-		w_all_next = w_all_f
-		w_all = w_all_f
+		w_all_next = copy.deepcopy(w_all)
+		w_all_iter = copy.deepcopy(w_all)
 		for i in range(iteration):
-			average_error.append(self.error_distributed(w_all,w_star,N,L2,m))
-			w_all_next = self.all_gradient_descent(Ut,w_all_next,d,w_all,eta)
-			w_all = (1/(r_i+1))*(c@w_all_next)
+			average_error.append(self.error_distributed(w_all_iter,w_star,N,L2,m))
+			w_all_next = self.all_gradient_descent(Ut,w_all_next,d,w_all_iter,eta)
+			w_all_iter = (1/(r_i+1))*(c@w_all_next)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'new distributed gradient descent')
-		return average_error,w_all_f
+		#return average_error,w_all
 
-	def distributed_L1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,iteration,c,w_all_f):	
-		average_error = [0]
-		for i in range(1,m+1,1):
-			exec("u_%d = Ut[%d]" % (i,i-1))
-			exec("d_%d = d[%d][0]" % (i,i-1))
-			exec("w_%d = np.reshape(w_all_f[%d],(N,1)).ravel() " % (i,i-1))
-			exec("w_next_%d = w_%d" % (i,i))
-			exec("error_w_%d = []" % (i))
-			exec("one_error_%d =[]" % (i))
-		times = [0]
-		for i in range(iteration):
-			for j in range(1,m+1,1):
-				exec("one_error_%d = np.dot((w_%d-w_star.ravel()).T,w_%d-w_star.ravel())" % (j,j,j))
-				exec("error_w_%d.append(self.db(one_error_%d,L2))" % (j,j))
-			for j in range(1,m+1,1):
-				exec("w_%d = self.one_L1(u_%d,d_%d,w_%d,lamb,eta)" % (j,j,j,j))
-				exec("w_next_%d = w_%d" % (j,j))
-			exec("w_all = [w_next_1]")
-			for j in range(2,m+1):
-				exec("w_all = np.concatenate((w_all,[w_next_%d]))" %(j))
-			exec("average = (1/(r_i+1))*np.dot(c,w_all)")
-			for j in range(1,m+1,1):
-				exec("w_%d = average[%d]" % (j,j-1))
-			times.append(i+1)
-		for i in range(iteration):
-			exec("average_error.append(error_w_1[%d])" % (i))
-			for j in range(2,m+1,1):
-				exec("average_error[%d] += error_w_%d[%d]" % (i+1,j,i))
-			average_error[i+1] = average_error[i+1]/m
-		plt.plot(times,average_error,label = 'distributed L1')
-		return average_error
-
-	def distributed_L1_2(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,iteration,c,w_all_f):
+	def distributed_L1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,iteration,c,w_all):
 		average_error = []
-		w_all_next = w_all_f
-		w_all = w_all_f
+		w_all_next = copy.deepcopy(w_all)
+		w_all_iter = copy.deepcopy(w_all)
 		for i in range(iteration):
-			average_error.append(self.error_distributed(w_all,w_star,N,L2,m))
-			w_all_next = self.all_L1(Ut,w_all_next,d,w_all,lamb,eta)
-			w_all = (1/(r_i+1))*(c@w_all_next)
+			average_error.append(self.error_distributed(w_all_iter,w_star,N,L2,m))
+			w_all_next = self.all_L1(Ut,w_all_next,d,w_all_iter,lamb,eta)
+			w_all_iter = (1/(r_i+1))*(c@w_all_next)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'new L1')
-		return average_error,w_all_f
+		#return average_error,w_all
 
-	def distributed_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all_f):
-		average_error = [0]
-		for i in range(1,m+1,1):
-			exec("u_%d = Ut[%d]" % (i,i-1))
-			exec("d_%d = d[%d][0]" % (i,i-1))
-			exec("w_%d = np.reshape(w_all_f[%d],(N,1)).ravel() " % (i,i-1))
-			exec("w_next_%d = w_%d" % (i,i))
-			exec("error_w_%d = []" % (i))
-			exec("one_error_%d =[]" % (i))
-		times = [0]
-		for i in range(iteration):
-			for j in range(1,m+1,1):
-				exec("one_error_%d = np.dot((w_%d-w_star.ravel()).T,w_%d-w_star.ravel())" % (j,j,j))
-				exec("error_w_%d.append(self.db(one_error_%d,L2))" % (j,j))
-			for j in range(1,m+1,1):
-				exec("w_%d = self.one_mc(u_%d,d_%d,w_%d,lamb,eta,rho)" % (j,j,j,j))
-				exec("w_next_%d = w_%d" % (j,j))
-			exec("w_all = [w_next_1]")
-			for j in range(2,m+1):
-				exec("w_all = np.concatenate((w_all,[w_next_%d]))" %(j))
-			exec("average = (1/(r_i+1))*np.dot(c,w_all)")
-			for j in range(1,m+1,1):
-				exec("w_%d = average[%d]" % (j,j-1))
-			times.append(i+1)
-		for i in range(iteration):
-			exec("average_error.append(error_w_1[%d])" % (i))
-			for j in range(2,m+1,1):
-				exec("average_error[%d] += error_w_%d[%d]" % (i+1,j,i))
-			average_error[i+1] = average_error[i+1]/m
-		#for i in range(1,m+1):
-		#	exec("plt.plot(times,error_w_%d)"%(i))
-		plt.plot(times,average_error,label = 'distributed mc')
-		return average_error
-
-	def distributed_mc_2(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all_f):
+	def distributed_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
-		w_all_next = w_all_f
-		w_all = w_all_f
+		w_all_next = copy.deepcopy(w_all)
+		w_all_iter = copy.deepcopy(w_all)
 		for i in range(iteration):
-			w_all_next = self.all_mc(Ut,w_all_next,d,w_all,lamb,eta,rho)
-			w_all = (1/(r_i+1))*(c@w_all_next)
-			average_error.append(self.error_distributed(w_all,w_star,N,L2,m))
+			average_error.append(self.error_distributed(w_all_iter,w_star,N,L2,m))
+			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
+			w_all_iter = (1/(r_i+1))*(c@w_all_next)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'new mc')
-		return average_error,w_all_f
+		#return average_error,w_all
 
-	def distributed_gradient_descent_wj(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all_f,wj):
-		average_error = [0]
-		L2wj = np.dot(wj.T,wj)
-		for i in range(1,m+1,1):
-			exec("u_%d = Ut[%d]" % (i,i-1))
-			exec("d_%d = d[%d][0]" % (i,i-1))
-			exec("w_%d = np.reshape(w_all_f[%d],(N,1)).ravel() " % (i,i-1))
-			exec("w_next_%d = w_%d" % (i,i))
-			exec("error_w_%d = []" % (i))
-			exec("one_error_%d =[]" % (i))
-			exec("average_error[0] += self.db(np.dot((w_%d-wj.ravel()).T,w_%d-wj.ravel()),L2wj)"%(i,i))
-		average_error[0] = average_error[0]/m
-		times = [0]
-		for i in range(iteration):
-			for j in range(1,m+1,1):
-				exec("w_%d = self.one_gradient_descent(u_%d,d_%d,w_%d,eta)" % (j,j,j,j))
-				exec("w_next_%d = w_%d" % (j,j))
-			exec("w_all = [w_next_1]")
-			for j in range(2,m+1):
-				exec("w_all = np.concatenate((w_all,[w_next_%d]))" %(j))
-			exec("average = (1/(r_i+1))*np.dot(c,w_all)")
-			for j in range(1,m+1,1):
-				exec("w_%d = average[%d]" % (j,j-1))
-			for j in range(1,m+1,1):
-				exec("one_error_%d = np.dot((w_%d-wj.ravel()).T,w_%d-wj.ravel())" % (j,j,j))
-				#exec("print(one_error_%d)"%(j))
-				exec("error_w_%d.append(self.db(one_error_%d,L2wj))" % (j,j))
-			times.append(i+1)
-		for i in range(iteration):
-			exec("average_error.append(error_w_1[%d])" % (i))
-			for j in range(2,m+1,1):
-				exec("average_error[%d] += error_w_%d[%d]" % (i+1,j,i))
-			average_error[i+1] = average_error[i+1]/m
-		exec("plt.plot(times,average_error,label = 'wj distributed gradient descent')")
-
-		return average_error
-
-	def distributed_L1_wj(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,iteration,c,w_all_f,wj):	
-		average_error = [0]
-		L2wj = np.dot(wj.T,wj)
-		for i in range(1,m+1,1):
-			exec("u_%d = Ut[%d]" % (i,i-1))
-			exec("d_%d = d[%d][0]" % (i,i-1))
-			exec("w_%d = np.reshape(w_all_f[%d],(N,1)).ravel() " % (i,i-1))
-			exec("w_next_%d = w_%d" % (i,i))
-			exec("error_w_%d = []" % (i))
-			exec("one_error_%d =[]" % (i))
-			exec("average_error[0] += self.db(np.dot((w_%d-wj.ravel()).T,w_%d-wj.ravel()),L2wj)"%(i,i))
-		average_error[0] = average_error[0]/m
-
-		times = [0]
-		for i in range(iteration):
-			for j in range(1,m+1,1):
-				exec("w_%d = self.one_L1(u_%d,d_%d,w_%d,lamb,eta)" % (j,j,j,j))
-				exec("w_next_%d = w_%d" % (j,j))
-			exec("w_all = [w_next_1]")
-			for j in range(2,m+1):
-				exec("w_all = np.concatenate((w_all,[w_next_%d]))" %(j))
-			exec("average = (1/(r_i+1))*np.dot(c,w_all)")
-			for j in range(1,m+1,1):
-				exec("w_%d = average[%d]" % (j,j-1))
-			for j in range(1,m+1,1):
-				exec("one_error_%d = np.dot((w_%d-wj.ravel()).T,w_%d-wj.ravel())" % (j,j,j))
-				exec("error_w_%d.append(self.db(one_error_%d,L2wj))" % (j,j))
-			times.append(i+1)
-		for i in range(iteration):
-			exec("average_error.append(error_w_1[%d])" % (i))
-			for j in range(2,m+1,1):
-				exec("average_error[%d] += error_w_%d[%d]" % (i+1,j,i))
-			average_error[i+1] = average_error[i+1]/m
-		exec("plt.plot(times,average_error,label = 'wj distributed L1')")
-		return average_error
-
-	def distributed_mc_wj(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all_f,wj):
-		average_error = [0]
-		L2wj = np.dot(wj.T,wj)
-		for i in range(1,m+1,1):
-			exec("u_%d = Ut[%d]" % (i,i-1))
-			exec("d_%d = d[%d][0]" % (i,i-1))
-			exec("w_%d = np.reshape(w_all_f[%d],(N,1)).ravel() " % (i,i-1))
-			exec("w_next_%d = w_%d" % (i,i))
-			exec("error_w_%d = []" % (i))
-			exec("one_error_%d =[]" % (i))
-			exec("average_error[0] += self.db(np.dot((w_%d-wj.ravel()).T,w_%d-wj.ravel()),L2wj)"%(i,i))
-		average_error[0] = average_error[0]/m
-		times = [0]
-		for i in range(iteration):
-			for j in range(1,m+1,1):
-				exec("w_%d = self.one_mc(u_%d,d_%d,w_%d,lamb,eta,rho)" % (j,j,j,j))
-				exec("w_next_%d = w_%d" % (j,j))
-			exec("w_all = [w_next_1]")
-			for j in range(2,m+1):
-				exec("w_all = np.concatenate((w_all,[w_next_%d]))" %(j))
-			exec("average = (1/(r_i+1))*np.dot(c,w_all)")
-			for j in range(1,m+1,1):
-				exec("w_%d = average[%d]" % (j,j-1))
-			for j in range(1,m+1,1):
-				exec("one_error_%d = np.dot((w_%d-wj.ravel()).T,w_%d-wj.ravel())" % (j,j,j))
-				
-				exec("error_w_%d.append(self.db(one_error_%d,L2wj))" % (j,j))
-			times.append(i+1)
-		for i in range(iteration):
-			exec("average_error.append(error_w_1[%d])" % (i))
-			for j in range(2,m+1,1):
-				exec("average_error[%d] += error_w_%d[%d]" % (i+1,j,i))
-			average_error[i+1] = average_error[i+1]/m
-		exec("plt.plot(times,average_error,label = 'wj distributed mc')")
-		return average_error
-
+	def distributed_mc_compare(self,Ut,d,wcmc,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
+		average_error = []
+		size = np.dot(wcmc.T,wcmc)[0][0]
+		print(size)
+		w_all_next = copy.deepcopy(w_all)
+		w_all_iter = copy.deepcopy(w_all)
+		for i in range(int(iteration)):
+			average_error.append(self.error_distributed(w_all_iter,wcmc,N,size,m))
+			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
+			w_all_iter = (1/(r_i+1))*(c@w_all_next)
+		times = range(len(average_error))
+		plt.plot(times,average_error,label = 'mc compare centralized with decentralized')
+		#return average_error,w_all
