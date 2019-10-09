@@ -442,10 +442,13 @@ class functions():
 		print(size)
 		w_all_next = copy.deepcopy(w_all)
 		w_all_iter = copy.deepcopy(w_all)
-		for i in range(int(iteration)):
+		for i in range(int(iteration/2)):
 			average_error.append(self.error_distributed(w_all_iter,wcmc,N,size,m))
 			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 			w_all_iter = (1/(r_i+1))*(c@w_all_next)
+		for i in range(int(iteration/2)):
+			average_error.append(self.error_distributed(w_all_iter,wcmc,N,size,m))
+			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'mc compare centralized with decentralized')
 		#return average_error,w_all
