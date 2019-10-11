@@ -176,16 +176,19 @@ class functions():
 			exit()
 		if sum(graph[place]) <= r_i:
 			result = True
-		else:
+		elif sum(graph[place]) == r_i + 1:
 			result = False
+		else:
+			print(graph)
+			exit()
 		return result
 
 	def undirected_graph(self,m,r_i):
 		graph = np.eye(m)
 		checklist = self.make_checklist(r_i,m)
 		for i in range(m):
-			connected = sum(x == 1 for x in graph[i])
-			while connected < r_i:
+			connected = sum(graph[i])
+			while connected < r_i+1:
 				select = np.random.randint(len(checklist))
 				connect_node = checklist[select]
 				if graph[i][connect_node] != 1 and self.horizontal_checker(graph,connect_node,i,r_i):
@@ -193,12 +196,6 @@ class functions():
 					connected += 1
 					graph[connect_node][i] =1
 					checklist.pop(select)
-		for row in graph:
-			if sum(row) == r_i +1:
-				print("good")
-			else:
-				print("bad",row)
-				exit()
 		return graph
 
 	def find_ones(self,row):
@@ -299,7 +296,6 @@ class functions():
 	def make_variables_no_noise(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
 		w = randn(N,1)
 		w_star = self.w_star(N,sparsity_percentage)
-		print(w_star)
 		U_all = randn(m,N)
 		d_all = np.dot(U_all,w_star)
 		L2 = np.dot(w_star.T,w_star)[0][0]
@@ -436,14 +432,12 @@ class functions():
 
 	def distributed_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
-		print(c)
 		w_all_next = copy.deepcopy(w_all)
 		w_all_iter = copy.deepcopy(w_all)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_iter,w_star,N,L2,m))
 			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 			w_all_iter = (1/(r_i+1))*(c@w_all_next)
-			print(w_all_iter)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'new mc')
 		#return average_error,w_all

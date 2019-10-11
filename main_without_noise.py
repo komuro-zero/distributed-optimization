@@ -12,8 +12,8 @@ class distributed_updates(functions):
 
         self.N = 100
         self.m = 100
-        self.r_i = 5
-        self.iteration = 1000
+        self.r_i = 50
+        self.iteration = 200
         self.sparsity_percentage = 0.2
         self.lamb = 0.051
         self.eta = 0.005
@@ -24,8 +24,6 @@ class distributed_updates(functions):
 
     def run(self):
         w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_no_noise(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
-        w_all = np.ones((self.m,self.m))
-        print(w_all)
         #error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.0047,self.iteration)
         #error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.00001,0.005,self.iteration)
         #error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.00005,0.005,self.iteration)
@@ -39,8 +37,8 @@ class distributed_updates(functions):
         #self.distributed_mc_wj(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((12)**2),self.iteration,graph,w_all,wcmc)
         #self.distributed_gradient_descent(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.2,self.iteration,graph,w_all)
         #self.distributed_L1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.007/self.m,0.2,self.iteration,graph,w_all)
-        self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb/self.m,0,2*(10**-3)*((1.5)**2),self.iteration,graph,w_all)
-        # self.distributed_mc_compare(U_all,d_all,wcmc,L2,self.N,self.m,self.r_i,self.lamb/self.m,0.0000002,2*(10**-3)*((1.5)**2),self.iteration,graph,w_all)
+        self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb/self.m,0.03,(self.lamb/self.m)*((1.5)**2),self.iteration,graph,w_all)
+        self.distributed_mc_compare(U_all,d_all,wcmc,L2,self.N,self.m,self.r_i,self.lamb/self.m,0.03,(self.lamb/self.m)*((1.5)**2),self.iteration,graph,w_all)
         # self.distributed_convexity_checker(4.3,2*10**-3,U_all,self.N)
         # self.centralized_convexity_checker(1.6,2.3*10**-2,U_all,self.N)
         #self.distributed_convexity_checker(self.B,self.lamb/self.m,U_all,self.N)
