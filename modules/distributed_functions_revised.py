@@ -300,7 +300,8 @@ class functions():
 		w = randn(N,1)
 		w_star = self.w_star(N,sparsity_percentage)
 		print(w_star)
-		U_all = randn(m,N)
+		#U_all = randn(m,N)
+		U_all = np.identity(m)
 		d_all = np.dot(U_all,w_star)
 		L2 = np.dot(w_star.T,w_star)[0][0]
 		graph = self.undirected_graph(m,r_i)
