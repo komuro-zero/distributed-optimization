@@ -452,7 +452,7 @@ class functions():
 			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 			w_all_iter = (1/(r_i+1))*(c@w_all_next)
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'new mc')
+		plt.plot(times,average_error,label = 'distributed mc')
 		return np.mean(w_all_iter,axis = 0)
 
 	def distributed_mc_compare(self,Ut,d,wcmc,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
