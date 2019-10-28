@@ -39,8 +39,8 @@ class distributed_updates(functions):
         #self.distributed_mc_wj(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((12)**2),self.iteration,graph,w_all,wcmc)
         #self.distributed_gradient_descent(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.2,self.iteration,graph,w_all)
         #self.distributed_L1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.007/self.m,0.2,self.iteration,graph,w_all)
-        # self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb/self.m,0,2*(10**-3)*((1.5)**2),self.iteration,graph,w_all)
-        wdmc = self.distributed_mc_compare(U_all,d_all,wcmc,L2,self.N,self.m,self.r_i,self.lamb/self.m,0.0000002,2*(10**-3)*((1.5)**2),self.iteration,graph,w_all)
+        self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb/self.m,0,2*(10**-3)*((1.5)**2),self.iteration,graph,w_all)
+        # self.distributed_mc_compare(U_all,d_all,wcmc,L2,self.N,self.m,self.r_i,self.lamb/self.m,0.0000002,2*(10**-3)*((1.5)**2),self.iteration,graph,w_all)
         # self.distributed_convexity_checker(4.3,2*10**-3,U_all,self.N)
         # self.centralized_convexity_checker(1.6,2.3*10**-2,U_all,self.N)
         #self.distributed_convexity_checker(self.B,self.lamb/self.m,U_all,self.N)
@@ -52,12 +52,10 @@ class distributed_updates(functions):
         # x  = range(len(wcgd))
         # plt.plot(x,wcgd,label = "LMS")
         # plt.plot(x,wcl1,label = "L1")
-        plt.plot(x,wcmc,label = "mc")
-        plt.plot(x,wdmc,label = "mc")
-        plt.plot(x,w_star,color = "black")
-        plt.legend()
-
-        plt.show()
+        # plt.plot(x,wcmc,label = "mc")
+        # plt.plot(x,w_star,color = "black")
+        # plt.legend()
+        # plt.show()
 
 if __name__ == "__main__":
     simulation = distributed_updates()

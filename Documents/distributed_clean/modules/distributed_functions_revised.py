@@ -78,7 +78,7 @@ class functions():
 		U, s, V = np.linalg.svd(X)
 		lpz = 2/max(s)
 		if lpz < eta:
-			print(f"eta must be smaller than {lpz}")
+			print(f"eta must be smaller than {lpz/2}")
 			exit()
 	
 	def lipschitz_checker_L1(self,U,m,eta,lamb):
@@ -122,7 +122,6 @@ class functions():
 			else:
 				print("your function is convex. go fuck yourself")
 				exit()
-		print("your distributed function is nonconvex")
 
 	def directed_graph(self,m,r_i):
 		c = np.eye(m) 
@@ -177,19 +176,16 @@ class functions():
 			exit()
 		if sum(graph[place]) <= r_i:
 			result = True
-		elif sum(graph[place]) == r_i + 1:
-			result = False
 		else:
-			print(graph)
-			exit()
+			result = False
 		return result
 
 	def undirected_graph(self,m,r_i):
 		graph = np.eye(m)
 		checklist = self.make_checklist(r_i,m)
 		for i in range(m):
-			connected = sum(graph[i])
-			while connected < r_i+1:
+			connected = sum(x == 1 for x in graph[i])
+			while connected < r_i:
 				select = np.random.randint(len(checklist))
 				connect_node = checklist[select]
 				if graph[i][connect_node] != 1 and self.horizontal_checker(graph,connect_node,i,r_i):
@@ -197,18 +193,12 @@ class functions():
 					connected += 1
 					graph[connect_node][i] =1
 					checklist.pop(select)
-		return graph
-	
-	def undirected_graph_new(self,m,r_i):
-		graph = np.eye(m)
-		for i in range(m):
-			for j in range(int(r_i/2)):
-				if i + j+1 < m:
-					graph[i][i+j+1] = 1
-					graph[i+j+1][i] = 1
-				else:
-					graph[i][j+i-m+1] = 1
-					graph[j+i-m+1][i] = 1
+		for row in graph:
+			if sum(row) == r_i +1:
+				print("good")
+			else:
+				print("bad",row)
+				exit()
 		return graph
 
 	def find_ones(self,row):
@@ -302,7 +292,7 @@ class functions():
 		d_all = np.dot(U_all,w_star)
 		d_all += d_all*randn(m,1)*(10**-(w_noise/10))
 		L2 = np.dot(w_star.T,w_star)[0][0]
-		graph = self.undirected_graph_new(m,r_i)
+		graph = self.undirected_graph(m,r_i)
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 
@@ -310,11 +300,11 @@ class functions():
 		w = randn(N,1)
 		w_star = self.w_star(N,sparsity_percentage)
 		print(w_star)
-		U_all = randn(m,N)
-		#U_all = np.identity(m)
+		#U_all = randn(m,N)
+		U_all = np.identity(m)
 		d_all = np.dot(U_all,w_star)
 		L2 = np.dot(w_star.T,w_star)[0][0]
-		graph = self.undirected_graph_new(m,r_i)
+		graph = self.undirected_graph(m,r_i)
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 	
@@ -377,7 +367,7 @@ class functions():
 
 	def one_gradient_descent(self,Ut,d,w,eta):
 		U = Ut.T
-		w = w - eta*((U*(np.dot(Ut,w)-d)))
+		w = w - 2*eta*((U*(np.dot(Ut,w)-d)))
 		return w
 
 	def all_gradient_descent(self,Ut,w_next,d,w_all,eta):
@@ -387,7 +377,7 @@ class functions():
 
 	def one_L1(self,Ut,d,w,lamb,eta):
 		U = Ut.T
-		w = w - eta*((U*(np.dot(Ut,w)-d)))
+		w = w - 2*eta*((U*(np.dot(Ut,w)-d)))
 		for j in range(len(w)):
 			if w[j] > 0 and eta*lamb < abs(w[j]):
 				w[j] -= eta*lamb
@@ -404,7 +394,7 @@ class functions():
 
 	def one_mc(self,Ut,d,w,lamb,eta,rho):
 		U = Ut.T
-		w = w - eta*((U*(np.dot(Ut,w)-d)))
+		w = w - 2*eta*((U*(np.dot(Ut,w)-d)))
 		for j in range(len(w)):
 			if abs(w[j]) <= eta*lamb:
 				w[j] = 0
@@ -447,15 +437,17 @@ class functions():
 
 	def distributed_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
+		print(c)
 		w_all_next = copy.deepcopy(w_all)
 		w_all_iter = copy.deepcopy(w_all)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_iter,w_star,N,L2,m))
 			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 			w_all_iter = (1/(r_i+1))*(c@w_all_next)
+			print(w_all_iter)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'new mc')
-		return np.mean(w_all_iter,axis = 0)
+		#return average_error,w_all
 
 	def distributed_mc_compare(self,Ut,d,wcmc,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
@@ -463,10 +455,13 @@ class functions():
 		print(size)
 		w_all_next = copy.deepcopy(w_all)
 		w_all_iter = copy.deepcopy(w_all)
-		for i in range(iteration):
+		for i in range(int(iteration/2)):
 			average_error.append(self.error_distributed(w_all_iter,wcmc,N,size,m))
 			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 			w_all_iter = (1/(r_i+1))*(c@w_all_next)
+		for i in range(int(iteration/2)):
+			average_error.append(self.error_distributed(w_all_iter,wcmc,N,size,m))
+			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'mc compare centralized with decentralized')
-		return np.mean(w_all_iter,axis = 0)
+		#return average_error,w_all
