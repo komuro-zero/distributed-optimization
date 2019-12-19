@@ -70,9 +70,7 @@ class update_functions(base):
 		return w
 
 	def all_gradient_descent(self,Ut,w_next,d,w_all,eta):
-		for i in range(len(Ut)):
-			w_next[i] = self.one_gradient_descent(Ut[i],d[i],w_all[i],eta)
-		return w_next
+		return 
 
 	def one_L1(self,Ut,d,w,lamb,eta):
 		U = Ut.T
@@ -173,6 +171,8 @@ class update_functions(base):
 			w_all_prox = self.extra_share(Ut,d,c,c_tilde,w_all_next,w_all_before,eta,i)
 			w_all_before = copy.deepcopy(w_all_next)
 			w_all_next = self.all_extra_mc(Ut,w_all_next,d,w_all_prox,lamb,eta,rho)
+			if i % 1000 == 0:
+				print(f"iteration: {i}")
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'extra mc')
 		return np.mean(w_all_next,axis = 0)
@@ -218,11 +218,13 @@ class update_functions(base):
 	def gradient(self,Ut,w,d):
 		gradient = copy.deepcopy(w)
 		for i in range(len(Ut)):
-			gradient[i] = (((Ut[i]).T)*(np.dot(Ut[i],w[i])-d[i]))
+			gradient[i] = self.one_gradient(Ut[i],d[i],w[i])
 		return gradient
-	
+
+	def one_gradient(self,U,d,w):
+		return U*(U@w.T-d)
+
 	def one_extra_L1(self,Ut,d,w,lamb,eta):
-		U = Ut.T
 		for j in range(len(w)):
 			if w[j] > 0 and eta*lamb < abs(w[j]):
 				w[j] -= eta*lamb
@@ -234,23 +236,23 @@ class update_functions(base):
 	
 	def all_extra_L1(self,Ut,w_next,d,w_all,lamb,eta):
 		for i in range(len(Ut)):
-			w_next[i] = self.one_L1(Ut[i],d[i],w_all[i],lamb,eta)
+			w_next[i] = self.one_extra_L1(Ut[i],d[i],w_all[i],lamb,eta)
 		return w_next
 
 	def one_extra_mc(self,Ut,d,w,lamb,eta,rho):
-		U = Ut.T
+		w_next = copy.deepcopy(w)
 		for j in range(len(w)):
 			if abs(w[j]) <= eta*lamb:
-				w[j] = 0
+				w_next[j] = 0
 			elif eta*lamb < abs(w[j]) and abs(w[j]) < lamb/rho:
-				w[j] = w[j]*(abs(w[j])-eta*lamb)/(abs(w[j])*(1-eta*rho))
+				w_next[j] = w[j]*(abs(w[j])-eta*lamb)/(abs(w[j])*(1-eta*rho))
 			elif lamb/rho <= abs(w[j]):
-				w[j] = w[j]
+				w_next[j] = w[j]
 			else:
 				print("banana")
-		return w
+		return w_next
 	
 	def all_extra_mc(self,Ut,w_next,d,w_all,lamb,eta,rho):
 		for i in range(len(Ut)):
-			w_next[i] = self.one_mc(Ut[i],d[i],w_all[i],lamb,eta,rho)
+			w_next[i] = self.one_extra_mc(Ut[i],d[i],w_all[i],lamb,eta,rho)
 		return w_next

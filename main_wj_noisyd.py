@@ -11,13 +11,13 @@ class distributed_updates(update_functions):
     def __init__(self):
 
         self.N = 100
-        self.m = 100
-        self.r_i = 60
-        self.iteration = 10000000
+        self.m = 200
+        self.r_i = 20
+        self.iteration = 100000
         self.sparsity_percentage = 0.2
-        self.lamb = 0.1
-        self.eta = 0.008
-        self.B = 0.5
+        self.lamb = 0.00001
+        self.eta = 0.005
+        self.B = 0.01
         self.rho = self.lamb*((self.B)**2)
         self.how_weakly_sparse = 0.0
         self.w_noise = 10
@@ -46,15 +46,15 @@ class distributed_updates(update_functions):
         #self.distributed_convexity_checker(self.B,self.lamb/self.m,U_all,self.N)
         #self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
         #self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
-        extra  = self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,self.eta,self.rho,self.iteration,graph,w_all)
+        # extra  = self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,self.eta,self.rho,self.iteration,graph,w_all)
         # extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,self.eta,self.rho,self.iteration,graph,w_all)
-        # extra_mc = self.pg_extra_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,self.eta,self.rho,self.iteration,graph,w_all)
+        extra_mc = self.pg_extra_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb/self.r_i,self.eta,self.rho,self.iteration,graph,w_all)
         plt.legend()
         plt.show()
-        x = range(len(extra))
-        plt.plot(x,extra,label = "extra")
+        x = range(len(extra_mc))
+        # plt.plot(x,extra,label = "extra")
         # plt.plot(x,extra_l1,label = "L1")
-        # plt.plot(x,extra_mc,label = "mc")
+        plt.plot(x,extra_mc,label = "mc")
         # plt.plot(x,wdmc1,label = "distributed mc")
         plt.plot(x,w_star,color = "black")
         plt.legend()

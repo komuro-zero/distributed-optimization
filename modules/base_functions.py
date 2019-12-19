@@ -9,7 +9,7 @@ import copy
 
 class base():
 	def w_star(self,N,sparse_percentage):
-		w_star = randn(N,1)     
+		w_star = np.random.randn(N,1)     
 		before_length = len(w_star)
 		after_length = before_length
 		while (after_length / before_length) > sparse_percentage:
@@ -19,7 +19,7 @@ class base():
 		return w_star
 	
 	def w_star_weakly_sparse(self,N,sparse_percentage,how_weak):
-		w_star = randn(N,1)     
+		w_star = np.random.randn(N,1)     
 		before_length = len(w_star)
 		after_length = before_length
 		while (after_length / before_length) > sparse_percentage:
@@ -29,7 +29,7 @@ class base():
 		w_star_prox = np.zeros((len(w_star),1))
 		for i in range(len(w_star)):
 			if w_star[i] == 0:
-				w_star_prox[i] = randn()
+				w_star_prox[i] = np.random.randn()
 		w_star_prox = w_star_prox/np.linalg.norm(w_star_prox)
 		w_star = w_star/np.linalg.norm(w_star)
 		w_star += how_weak*w_star_prox
@@ -270,9 +270,9 @@ class base():
 		return result
 	
 	def make_w(self,m,N):
-		w = randn(N,1).T
+		w = np.random.randn(N,1).T
 		for i in range(m-1):
-			w = np.concatenate((w,randn(N,1).T))
+			w = np.concatenate((w,np.random.randn(N,1).T))
 		return w
 
 	def error_distributed(self,w_all,w_star,N,L2,m):
@@ -284,11 +284,11 @@ class base():
 		return this_error
 
 	def make_variables(self,N,m,sparsity_percentage,how_weakly_sparse,w_noise):
-		w = randn(N,1)
+		w = np.random.randn(N,1)
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
 		#w_star = self.w_star(N,sparsity_percentage)
-		U_all = randn(m,N)
-		w_star_noise = w_star +randn(N,1)*(10**-(w_noise/10))
+		U_all = np.random.randn(m,N)
+		w_star_noise = w_star +np.random.randn(N,1)*(10**-(w_noise/10))
 		#w_star_noise = w_star_noise/np.dot(w_star_noise.T,w_star_noise)
 		d_all = np.dot(U_all,w_star_noise)
 		L2 = np.dot(w_star.T,w_star)
@@ -296,20 +296,20 @@ class base():
 		return w,w_star,U_all,d_all,L2
 
 	def make_variables_noise_after(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
-		w = randn(N,1)
+		w = np.random.randn(N,1)
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
-		U_all = randn(m,N)
+		U_all = np.random.randn(m,N)
 		d_all = np.dot(U_all,w_star)
-		d_all += d_all*randn(m,1)*(10**-(w_noise/10))
+		d_all += d_all*np.random.randn(m,1)*(10**-(w_noise/10))
 		L2 = np.dot(w_star.T,w_star)[0][0]
 		graph = self.undirected_graph_new(m,r_i)
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 
 	def make_variables_no_noise(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
-		w = randn(N,1)
+		w = np.random.randn(N,1)
 		w_star = self.w_star(N,sparsity_percentage)
-		U_all = randn(m,N)
+		U_all = np.random.randn(m,N)
 		d_all = np.dot(U_all,w_star)
 		L2 = np.dot(w_star.T,w_star)[0][0]
 		graph = self.undirected_graph_new(m,r_i)
