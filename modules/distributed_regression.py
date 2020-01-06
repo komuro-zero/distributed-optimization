@@ -177,6 +177,29 @@ class update_functions(base):
 		plt.plot(times,average_error,label = 'extra mc')
 		return np.mean(w_all_next,axis = 0)
 
+	def pg_extra_mc_soft(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
+		average_error = []
+		w_all_next = copy.deepcopy(w_all)
+		w_all_before = copy.deepcopy(w_all)
+		w_all_prox = copy.deepcopy(w_all)
+		w_all_prox_before = copy.deepcopy(w_all_prox)
+		c = (1/(r_i+1))*c
+		c_tilde = (1/2)*(np.eye(len(c))+c)
+		for i in range(iteration):
+			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+			w_all_prox_before = copy.deepcopy(w_all_prox)
+			if i == 0:
+				w_all_prox = c@w_all_before-eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho))
+			else:
+				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho)-self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho))
+			w_all_before = copy.deepcopy(w_all_next)
+			w_all_next = self.all_extra_L1(Ut,w_all_next,d,w_all_prox,eta,lamb)
+			if i % 100 == 0:
+				print(f"iteration: {i}")
+		times = range(len(average_error))
+		plt.plot(times,average_error,label = 'extra mc')
+		return np.mean(w_all_next,axis = 0)
+
 	def extra(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
 		w_all_next = copy.deepcopy(w_all)
@@ -199,6 +222,19 @@ class update_functions(base):
 		else:
 			return c@w_all_next + w_all_next - c_tilde@w_all_before - eta*(self.gradient(Ut,w_all_next,d)-self.gradient(Ut,w_all_before,d))
 	
+	def extra_share_soft(self,Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,eta,lamb,rho,i):
+		if i == 0:
+			return c@w_all_next - eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho))
+		else:
+			return c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho)-self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho))
+
+	def new_extra_share(self,Ut,d,c,c_tilde,w_all_next,w_all_before,eta,i):
+		U = Ut.T
+		if i == 0:
+			return ((c@w_all_next).T - eta*(U@(Ut@w_all_next.T-d))).T
+		else:
+			return ((c@w_all_next).T + w_all_next.T - (c_tilde@w_all_before).T - eta*(U@(Ut@w_all_next.T-d)-U@(Ut@w_all_before.T-d))).T
+
 	def pg_extra_l1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
 		w_all_next = copy.deepcopy(w_all)
@@ -220,9 +256,16 @@ class update_functions(base):
 		for i in range(len(Ut)):
 			gradient[i] = self.one_gradient(Ut[i],d[i],w[i])
 		return gradient
+	
+	def gradient_soft(self,Ut,w_now,d,lamb,eta,rho):
+		w = copy.deepcopy(w_now)
+		gradient = copy.deepcopy(w)
+		for i in range(len(Ut)):
+			gradient[i] = self.one_gradient(Ut[i],d[i],w[i])-(lamb*Ut[i]@w[i].T)*Ut[i]+rho*(self.one_extra_L1(Ut[i],d[i],w[i],lamb,1/rho))
+		return gradient
 
 	def one_gradient(self,U,d,w):
-		return U*(U@w.T-d)
+		return (U@w.T-d)*U
 
 	def one_extra_L1(self,Ut,d,w,lamb,eta):
 		for j in range(len(w)):
