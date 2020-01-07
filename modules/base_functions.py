@@ -48,8 +48,9 @@ class base():
 	def db(self,x, y):
 		db = 10 * np.log10(x / y)    
 		return db
-
+ 
 	def rho_checker(self,rho,lamb,eta):
+		print("b should be smaller than",1/((eta*lamb)**0.5))
 		if lamb/rho <= eta*lamb:
 			print("faulty rho")
 			exit()
@@ -63,8 +64,9 @@ class base():
 	
 	def params_checker(self,rho,lamb,eta,U_all,B,m,N,graph):
 		small_eig, big_eig = self.U_eigenvalue(U_all)
+		print("b <",(small_eig/lamb)**0.5)
 		if rho > small_eig:
-			print("rho is bigger than the smallest eigen",small_eig)
+			print("rho is bigger than the smallest eigen",small_eig,"rho = ",rho)
 			exit()
 		elif eta > 2/big_eig:
 			print("eta may be too big")
