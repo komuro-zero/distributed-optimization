@@ -7,9 +7,9 @@ import copy
 
 #np.random.seed(0)
 
-class functions():
+class base():
 	def w_star(self,N,sparse_percentage):
-		w_star = randn(N,1)     
+		w_star = np.random.randn(N,1)     
 		before_length = len(w_star)
 		after_length = before_length
 		while (after_length / before_length) > sparse_percentage:
@@ -19,7 +19,7 @@ class functions():
 		return w_star
 	
 	def w_star_weakly_sparse(self,N,sparse_percentage,how_weak):
-		w_star = randn(N,1)     
+		w_star = np.random.randn(N,1)     
 		before_length = len(w_star)
 		after_length = before_length
 		while (after_length / before_length) > sparse_percentage:
@@ -29,7 +29,7 @@ class functions():
 		w_star_prox = np.zeros((len(w_star),1))
 		for i in range(len(w_star)):
 			if w_star[i] == 0:
-				w_star_prox[i] = randn()
+				w_star_prox[i] = np.random.randn()
 		w_star_prox = w_star_prox/np.linalg.norm(w_star_prox)
 		w_star = w_star/np.linalg.norm(w_star)
 		w_star += how_weak*w_star_prox
@@ -78,7 +78,7 @@ class functions():
 		U, s, V = np.linalg.svd(X)
 		lpz = 2/max(s)
 		if lpz < eta:
-			print(f"eta must be smaller than {lpz/2}")
+			print(f"eta must be smaller than {lpz}")
 			exit()
 	
 	def lipschitz_checker_L1(self,U,m,eta,lamb):
@@ -122,6 +122,7 @@ class functions():
 			else:
 				print("your function is convex. go fuck yourself")
 				exit()
+		print("your distributed function is nonconvex")
 
 	def directed_graph(self,m,r_i):
 		c = np.eye(m) 
@@ -176,16 +177,19 @@ class functions():
 			exit()
 		if sum(graph[place]) <= r_i:
 			result = True
-		else:
+		elif sum(graph[place]) == r_i + 1:
 			result = False
+		else:
+			print(graph)
+			exit()
 		return result
 
 	def undirected_graph(self,m,r_i):
 		graph = np.eye(m)
 		checklist = self.make_checklist(r_i,m)
 		for i in range(m):
-			connected = sum(x == 1 for x in graph[i])
-			while connected < r_i:
+			connected = sum(graph[i])
+			while connected < r_i+1:
 				select = np.random.randint(len(checklist))
 				connect_node = checklist[select]
 				if graph[i][connect_node] != 1 and self.horizontal_checker(graph,connect_node,i,r_i):
@@ -193,12 +197,18 @@ class functions():
 					connected += 1
 					graph[connect_node][i] =1
 					checklist.pop(select)
-		for row in graph:
-			if sum(row) == r_i +1:
-				print("good")
-			else:
-				print("bad",row)
-				exit()
+		return graph
+	
+	def undirected_graph_new(self,m,r_i):
+		graph = np.eye(m)
+		for i in range(m):
+			for j in range(int(r_i/2)):
+				if i + j+1 < m:
+					graph[i][i+j+1] = 1
+					graph[i+j+1][i] = 1
+				else:
+					graph[i][j+i-m+1] = 1
+					graph[j+i-m+1][i] = 1
 		return graph
 
 	def find_ones(self,row):
@@ -260,9 +270,9 @@ class functions():
 		return result
 	
 	def make_w(self,m,N):
-		w = randn(N,1).T
+		w = np.random.randn(N,1).T
 		for i in range(m-1):
-			w = np.concatenate((w,randn(N,1).T))
+			w = np.concatenate((w,np.random.randn(N,1).T))
 		return w
 
 	def error_distributed(self,w_all,w_star,N,L2,m):
@@ -274,11 +284,11 @@ class functions():
 		return this_error
 
 	def make_variables(self,N,m,sparsity_percentage,how_weakly_sparse,w_noise):
-		w = randn(N,1)
+		w = np.random.randn(N,1)
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
 		#w_star = self.w_star(N,sparsity_percentage)
-		U_all = randn(m,N)
-		w_star_noise = w_star +randn(N,1)*(10**-(w_noise/10))
+		U_all = np.random.randn(m,N)
+		w_star_noise = w_star +np.random.randn(N,1)*(10**-(w_noise/10))
 		#w_star_noise = w_star_noise/np.dot(w_star_noise.T,w_star_noise)
 		d_all = np.dot(U_all,w_star_noise)
 		L2 = np.dot(w_star.T,w_star)
@@ -286,25 +296,23 @@ class functions():
 		return w,w_star,U_all,d_all,L2
 
 	def make_variables_noise_after(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
-		w = randn(N,1)
+		w = np.random.randn(N,1)
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
-		U_all = randn(m,N)
+		U_all = np.random.randn(m,N)
 		d_all = np.dot(U_all,w_star)
-		d_all += d_all*randn(m,1)*(10**-(w_noise/10))
+		d_all += d_all*np.random.randn(m,1)*(10**-(w_noise/10))
 		L2 = np.dot(w_star.T,w_star)[0][0]
-		graph = self.undirected_graph(m,r_i)
+		graph = self.undirected_graph_new(m,r_i)
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 
 	def make_variables_no_noise(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
-		w = randn(N,1)
+		w = np.random.randn(N,1)
 		w_star = self.w_star(N,sparsity_percentage)
-		print(w_star)
-		#U_all = randn(m,N)
-		U_all = np.identity(m)
+		U_all = np.random.randn(m,N)
 		d_all = np.dot(U_all,w_star)
 		L2 = np.dot(w_star.T,w_star)[0][0]
-		graph = self.undirected_graph(m,r_i)
+		graph = self.undirected_graph_new(m,r_i)
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 	
@@ -367,7 +375,7 @@ class functions():
 
 	def one_gradient_descent(self,Ut,d,w,eta):
 		U = Ut.T
-		w = w - 2*eta*((U*(np.dot(Ut,w)-d)))
+		w = w - eta*((U*(np.dot(Ut,w)-d)))
 		return w
 
 	def all_gradient_descent(self,Ut,w_next,d,w_all,eta):
@@ -377,7 +385,7 @@ class functions():
 
 	def one_L1(self,Ut,d,w,lamb,eta):
 		U = Ut.T
-		w = w - 2*eta*((U*(np.dot(Ut,w)-d)))
+		w = w - eta*((U*(np.dot(Ut,w)-d)))
 		for j in range(len(w)):
 			if w[j] > 0 and eta*lamb < abs(w[j]):
 				w[j] -= eta*lamb
@@ -394,7 +402,7 @@ class functions():
 
 	def one_mc(self,Ut,d,w,lamb,eta,rho):
 		U = Ut.T
-		w = w - 2*eta*((U*(np.dot(Ut,w)-d)))
+		w = w - eta*((U*(np.dot(Ut,w)-d)))
 		for j in range(len(w)):
 			if abs(w[j]) <= eta*lamb:
 				w[j] = 0
@@ -437,17 +445,15 @@ class functions():
 
 	def distributed_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
-		print(c)
 		w_all_next = copy.deepcopy(w_all)
 		w_all_iter = copy.deepcopy(w_all)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_iter,w_star,N,L2,m))
 			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 			w_all_iter = (1/(r_i+1))*(c@w_all_next)
-			print(w_all_iter)
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'new mc')
-		#return average_error,w_all
+		plt.plot(times,average_error,label = 'distributed mc')
+		return np.mean(w_all_iter,axis = 0)
 
 	def distributed_mc_compare(self,Ut,d,wcmc,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
@@ -455,13 +461,12 @@ class functions():
 		print(size)
 		w_all_next = copy.deepcopy(w_all)
 		w_all_iter = copy.deepcopy(w_all)
-		for i in range(int(iteration/2)):
+		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_iter,wcmc,N,size,m))
 			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 			w_all_iter = (1/(r_i+1))*(c@w_all_next)
-		for i in range(int(iteration/2)):
-			average_error.append(self.error_distributed(w_all_iter,wcmc,N,size,m))
-			w_all_next = self.all_mc(Ut,w_all_next,d,w_all_iter,lamb,eta,rho)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'mc compare centralized with decentralized')
-		#return average_error,w_all
+		return np.mean(w_all_iter,axis = 0)
+	
+	
