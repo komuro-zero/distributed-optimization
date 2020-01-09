@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from numpy.random import *
-from modules.distributed_regression import update_functions
+from modules.distributed_regression     import update_functions
 
 
 np.random.seed(0)
@@ -12,17 +12,17 @@ class distributed_updates(update_functions):
         self.N = 60
         self.m = 100
         self.r_i = 80
-        self.iteration = 20000
+        self.iteration =4000
         self.sparsity_percentage = 0.2
         self.lamb = 0.4
         self.eta = 0.00657
         self.B = 3.73
         self.rho = self.lamb*((self.B)**2)
         self.how_weakly_sparse = 0.0
-        self.w_noise = 0
+        self.w_noise = 10
 
     def run(self):
-        w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_no_noise(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
+        w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_noise_after(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
         # error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.0047,self.iteration)
         # error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.00001,0.005,self.iteration)
         # error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.00005,0.005,self.iteration)
@@ -46,9 +46,11 @@ class distributed_updates(update_functions):
         # self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
         # self.distributed_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.3*10**-2,0.17,2.3*(10**-2)*((4.3)**2),self.iteration,graph,w_all)
         # extra = self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.00657,self.rho,self.iteration,graph,w_all)
-        extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.00000001,0.00657,self.rho,self.iteration,graph,w_all)
-        extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.00000005,0.00657,self.rho,self.iteration,graph,w_all)
-        extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.0000001,0.00657,self.rho,self.iteration,graph,w_all)
+        # extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.00000001,0.00657,self.rho,self.iteration,graph,w_all)
+        # extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.000000005,0.00657,self.rho,self.iteration,graph,w_all)
+        extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,10**-2,0.00657,self.rho,self.iteration,graph,w_all)
+        extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.01,0.00657,0.001,self.iteration,graph,w_all)
+
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.01,0.00000001,self.rho,self.iteration,graph,w_all)
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.01,0.0000001,self.rho,self.iteration,graph,w_all)
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.01,0.000001,self.rho,self.iteration,graph,w_all)

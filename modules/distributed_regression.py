@@ -40,6 +40,38 @@ class update_functions(base):
 			times.append(i+1)
 		exec("plt.plot(times,error,label = 'centralized_L1')")
 		return error,w
+	
+	def centralized_mc_twin(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration,m):
+		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
+		times = [0]
+		one_error =0
+		prox = np.zeros_like(w)
+		U = Ut.T
+		for i in range(iteration):
+			delta_q = np.zeros_like(w).T
+			for j in range(len(w)):
+				if w[j] > 0 and lamb/rho< abs(w[j]):
+					prox[j] = w[j] - lamb/rho
+				elif w[j] < 0 and eta*lamb/rho < abs(w[j]):
+					prox[j] = w[j] + lamb/rho
+				else:
+					prox[j] = 0
+			for ui in Ut:
+				delta_q += (((ui@w)[0])*ui.T).T
+			delta_q = ((1/m)*delta_q).T
+			w = w - eta*(np.dot(U,(np.dot(Ut,w)-d))-lamb*delta_q+rho*prox)
+			for j in range(len(w)):
+				if w[j] > 0 and eta*lamb < abs(w[j]):
+					w[j] -= eta*lamb
+				elif w[j] < 0 and eta*lamb < abs(w[j]):
+					w[j] += eta*lamb
+				else:
+					w[j] = 0
+			one_error = np.dot((w-w_star).T,w-w_star)[0]
+			error.append(self.db(one_error,L2))
+			times.append(i+1)
+		exec("plt.plot(times,error,label = 'centralized_mc_twin')")
+		return error,w
 
 	def centralized_mc(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration):
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
@@ -190,11 +222,11 @@ class update_functions(base):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
 			w_all_prox_before = copy.deepcopy(w_all_prox)
 			if i == 0:
-				w_all_prox = c@w_all_before-eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho))
+				w_all_prox = c@w_all_before-eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho,m))
 			else:
-				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho)-self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho))
+				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho,m))
 			w_all_before = copy.deepcopy(w_all_next)
-			w_all_next = self.all_extra_L1(Ut,w_all_next,d,w_all_prox,eta,lamb)
+			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,eta,lamb)
 			if i % 100 == 0:
 				print(f"iteration: {i}")
 		times = range(len(average_error))
@@ -218,7 +250,7 @@ class update_functions(base):
 			else:
 				w_all_prox = c@w_all_k1 + w_all_prox_before - c_tilde@w_all_k - eta*(self.gradient_soft_nonconvex(Ut,w_all_k1,d,lamb,eta,rho)-self.gradient_soft_nonconvex(Ut,w_all_k,d,lamb,eta,rho))
 			w_all_k = copy.deepcopy(w_all_k1)
-			w_all_k2 = self.all_extra_L1(Ut,w_all_k1,d,w_all_prox,eta,lamb)
+			w_all_k2 = self.all_extra_L1(Ut,d,w_all_prox,eta,lamb)
 			w_all_k1 = copy.deepcopy(w_all_k2)
 			if i % 100 == 0:
 				print(f"iteration: {i}")
@@ -242,7 +274,7 @@ class update_functions(base):
 			else:
 				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_L2_soft(Ut,w_all_next,d,lamb,eta,rho)-self.gradient_L2_soft(Ut,w_all_before,d,lamb,eta,rho))
 			w_all_before = copy.deepcopy(w_all_next)
-			w_all_next = self.all_extra_L1(Ut,w_all_next,d,w_all_prox,eta,lamb)
+			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,eta,lamb)
 			if i % 100 == 0:
 				print(f"iteration: {i}")
 		times = range(len(average_error))
@@ -287,6 +319,12 @@ class update_functions(base):
 		else:
 			return c@w_all_next + w_all_next - c_tilde@w_all_before - eta*(self.gradient(Ut,w_all_next,d)-self.gradient(Ut,w_all_before,d))
 	
+	def extra_l1_share(self,Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox,eta,i):
+		if i == 0:
+			return c@w_all_next - eta*(self.gradient(Ut,w_all_next,d))
+		else:
+			return c@w_all_next + w_all_prox - c_tilde@w_all_before - eta*(self.gradient(Ut,w_all_next,d)-self.gradient(Ut,w_all_before,d))
+	
 	def extra_share_new(self,Ut,d,c,c_tilde,w_all_next,w_all_before,eta,i):
 		if i == 0:
 			return c@w_all_next - eta*(self.gradient_new(Ut,w_all_next,d))
@@ -315,10 +353,12 @@ class update_functions(base):
 		c_tilde = (1/2)*(np.eye(len(c))+c)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
-			w_all_prox = self.extra_share(Ut,d,c,c_tilde,w_all_next,w_all_before,eta,i)
+			w_all_prox_before = copy.deepcopy(w_all_prox)
+			w_all_prox = self.extra_l1_share(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,eta,i)
 			w_all_before = copy.deepcopy(w_all_next)
-			w_all_next = self.all_extra_L1(Ut,w_all_next,d,w_all_prox,lamb,eta)
+			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta)
 			if i %100 == 0:
+				print((w_all_next-w_all_prox)[0])
 				print("iteration:",i)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'extra l1')
@@ -338,11 +378,11 @@ class update_functions(base):
 			gradient[i] = self.one_gradient(Ut[i],d[i],w[i])
 		return gradient
 	
-	def gradient_soft(self,Ut,w_now,d,lamb,eta,rho):
+	def gradient_soft(self,Ut,w_now,d,lamb,eta,rho,m):
 		w = copy.deepcopy(w_now)
 		gradient = copy.deepcopy(w)
 		for i in range(len(Ut)):
-			gradient[i] = self.one_gradient(Ut[i],d[i],w[i])-(lamb*Ut[i]@w[i].T)*Ut[i]+rho*(self.one_extra_L1(Ut[i],d[i],w[i],lamb,1/rho))
+			gradient[i] = self.one_gradient(Ut[i],d[i],w[i])-((lamb/m)*Ut[i]@w[i].T)*Ut[i]+rho*(self.one_extra_L1(Ut[i],d[i],w[i],lamb,1/rho))
 		return gradient
 
 	def gradient_soft_nonconvex(self,Ut,w_now,d,lamb,eta,rho):
@@ -373,9 +413,9 @@ class update_functions(base):
 				w[j] = 0
 		return w
 	
-	def all_extra_L1(self,Ut,w_next_now,d,w_all_now,lamb,eta):
+	def all_extra_L1(self,Ut,d,w_all_now,lamb,eta):
 		w_all = copy.deepcopy(w_all_now)
-		w_next = copy.deepcopy(w_next_now)
+		w_next = copy.deepcopy(w_all_now)
 		for i in range(len(Ut)):
 			w_next[i] = self.one_extra_L1(Ut[i],d[i],w_all[i],lamb,eta)
 		return w_next
