@@ -70,6 +70,7 @@ class base():
 			exit()
 		elif eta > 2/big_eig:
 			print("eta may be too big")
+		print("eta should be smaller than :",eta)
 		self.rho_checker(rho,lamb,eta)
 		self.lipschitz_checker(U_all,B,m,eta,lamb)
 		self.distributed_lipschitz_checker(U_all,B,m,eta,N,lamb)

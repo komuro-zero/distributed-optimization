@@ -10,25 +10,23 @@ class distributed_updates(update_functions):
 
 
     def __init__(self):
-        self.N = 100
-        self.m = 500
-        self.r_i = 200
-        self.iteration = 100
+        self.N = 60
+        self.m = 100
+        self.r_i = 80
+        self.iteration = 1000
         self.sparsity_percentage = 0.2
         self.lamb = 0.4
-        self.eta = 0.00178
-        self.B = 19.3
+        self.eta = 0.00657
+        self.B = 3.73
         self.rho = self.lamb*((self.B)**2)
         self.how_weakly_sparse = 0.0
         self.w_noise = 0
 
     def run(self):
         w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_no_noise(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
-        error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.00175,self.iteration)
-        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.01,0.00178,self.iteration)
-        error,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,self.lamb,self.eta,self.rho,self.iteration)
-        # error,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,self.lamb,self.eta,self.rho,self.iteration)
-        # error,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,self.lamb,self.eta,self.rho,self.iteration)
+        error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.00655,self.iteration)
+        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.01,0.00657,self.iteration)
+        error,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,self.lamb,0.00657,self.rho,self.iteration)
         self.params_checker(self.rho,self.lamb,self.eta,U_all,self.B,self.m,self.N,graph)
         # self.lipschitz_checker_L1(U_all,self.m,0.0044,1.9)
         # self.centralized_convexity_checker(self.B,self.lamb,U_all,self.N)
