@@ -358,7 +358,6 @@ class update_functions(base):
 			w_all_before = copy.deepcopy(w_all_next)
 			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta)
 			if i %100 == 0:
-				print((w_all_next-w_all_prox)[0])
 				print("iteration:",i)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'extra l1')

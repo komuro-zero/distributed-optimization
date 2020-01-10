@@ -12,17 +12,17 @@ class distributed_updates(update_functions):
         self.N = 60
         self.m = 100
         self.r_i = 80
-        self.iteration = 4000
+        self.iteration = 7000
         self.sparsity_percentage = 0.2
-        self.lamb = 0.0001
+        self.lamb = 0.0008
         self.eta = 0.00657
         self.B = 3.73
         self.rho = self.lamb*((self.B)**2)
         self.how_weakly_sparse = 0.0
-        self.w_noise = 0
+        self.w_noise = 20
 
     def run(self):
-        w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_no_noise(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
+        w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_noise_after(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
         self.params_checker(self.rho,self.lamb,self.eta,U_all,self.B,self.m,self.N,graph)
         self.centralized_convexity_checker(self.B,self.lamb,U_all,self.N)
         # extra = self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.00657,self.rho,self.iteration,graph,w_all)
@@ -30,8 +30,12 @@ class distributed_updates(update_functions):
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.01,self.eta,self.rho,self.iteration,graph,w_all)
         # extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.0000001,0.00657,self.rho,self.iteration,graph,w_all)
         # error,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,0.01*self.m,0.00657,self.m*0.0001,self.iteration)
-        error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,0.01*self.m,0.00657,self.m*0.0001,self.iteration,self.m)
-        extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.01,0.00657,0.0001,self.iteration,graph,w_all)
+        # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,0.01*self.m,0.00657,self.m*0.0001,self.iteration,self.m)
+
+        extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.0008,0.00657,0.0011,self.iteration,graph,w_all)
+        extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.0008,0.00657,0.001,self.iteration,graph,w_all)
+        extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.0008,0.00657,0.0009,self.iteration,graph,w_all)
+
         # extra_mc_non = self.pg_extra_mc_soft_nonconvex(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.01,0.00657,0.0001,self.iteration,graph,w_all)
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.05,0.00657,0.0001,self.iteration,graph,w_all)
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.001,0.00657,0.0001,self.iteration,graph,w_all)
