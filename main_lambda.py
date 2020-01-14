@@ -49,11 +49,30 @@ class distributed_updates(update_functions):
         # extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.00000001,0.00657,self.rho,self.iteration,graph,w_all)
         # extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.07098/self.m,0.00657,self.rho,self.iteration,graph,w_all)
 
-        extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.009/self.m,0.002849,0.021/self.m,self.iteration,graph,w_all)
+        extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.00009,0.002849,0.00021,self.iteration,graph,w_all)
         # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,0.008,0.002849,0.0185,self.iteration,self.m)
 
         extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.0000723,0.002849,self.rho,self.iteration,graph,w_all)
+        
+        """
+        lambda_list = []
+        l1_error_list = []
+        mc_error_list = []
+        mc_error_b = []
+        for i in range(20):
+            lamb = (i+1)*10**-4
+            error_l1,wl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.0000723,0.002849,self.iteration)
+            for i in range(1000):
+                b = (i + 1)*10**-4
+                error_mc,wmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,0.009,0.002849,b,self.iteration,self.m)
+                mc_error_b.append(error_mc[-1])
+            
+            lambda_list.append(lamb)
+            l1_error_list.append(error_l1[-1])
+            mc_error_list.append(min(mc_error_b))
+            mc_error_b = []
 
+        """
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.00885/self.m,0.002849,0.000999/self.m,self.iteration,graph,w_all)
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.07828/self.m,0.002849,0.00999/self.m,self.iteration,graph,w_all)
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.07828/self.m,0.002849,0.00999/self.m,self.iteration,graph,w_all)

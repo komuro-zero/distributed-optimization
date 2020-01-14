@@ -65,6 +65,7 @@ class base():
 	def params_checker(self,rho,lamb,eta,U_all,B,m,N,graph):
 		small_eig, big_eig = self.U_eigenvalue(U_all)
 		print("b <",(small_eig/lamb)**0.5)
+		print("rho must be smaller than",small_eig)
 		if rho > small_eig:
 			print("rho is bigger than the smallest eigen",small_eig,"rho = ",rho)
 			exit()
