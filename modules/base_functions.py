@@ -304,7 +304,9 @@ class base():
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
 		U_all = np.random.randn(m,N)
 		d_all = np.dot(U_all,w_star)
-		d_all += np.random.randn(m,1)*(10**-(w_noise/10))
+		variance_n = np.var(d_all)
+		variance_s = variance_n*10**(-w_noise/10)
+		d_all += np.random.normal(loc= 0,scale = variance_s**(0.5),size = (m,1))
 		L2 = np.dot(w_star.T,w_star)[0][0]
 		graph = self.undirected_graph_new(m,r_i)
 		w_all = self.make_w(m,N)
@@ -350,7 +352,7 @@ class base():
 			one_error = np.dot((w-w_star).T,w-w_star)[0]
 			error.append(self.db(one_error,L2))
 			times.append(i+1)
-		exec("plt.plot(times,error,label = 'centralized_L1')")
+		plt.plot(times,error,label = 'centralized_L1')
 		return error,w
 
 	def centralized_mc(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration):

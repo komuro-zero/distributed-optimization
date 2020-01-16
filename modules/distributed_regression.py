@@ -270,7 +270,7 @@ class update_functions(base):
 		# plt.plot(times,average_convergence)
 		# plt.title("convergence over iteration")
 		# plt.show()
-		plt.plot(times,average_error,label = 'extra mc')
+		plt.plot(times,average_error,label = 'PG-EXTRA with MC penalty')
 		return np.mean(w_all_next,axis = 0),	
 
 	def pg_extra_mc_soft_nonconvex(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
@@ -400,7 +400,7 @@ class update_functions(base):
 			if i %100 == 0:
 				print("iteration:",i)
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'extra l1')
+		plt.plot(times,average_error,label = 'PG-EXTRA with LASSO')
 		return np.mean(w_all_next,axis = 0)
 
 	def gradient(self,Ut,w_now,d):
