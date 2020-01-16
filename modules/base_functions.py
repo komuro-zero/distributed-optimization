@@ -320,62 +320,7 @@ class base():
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 	
-	def centralized_gradient_descent(self,Ut,d,w,w_star,L2,eta,iteration):
-		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
-		times = [0]
-		one_error =0
-		U = Ut.T
-		for i in range(iteration):
-			w = w - eta*(np.dot(U,(np.dot(Ut,w)-d)))
-			one_error = np.dot((w-w_star).T,w-w_star)[0]
-			error.append(self.db(one_error,L2))
-			times.append(i+1)
-		plt.plot(times,error,label = "centralized gradient descent")
-		return error,w
-
-	def centralized_L1(self,Ut,d,w,w_star,L2,lamb,eta,iteration):
-		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
-		times = [0]
-		one_error =0
-		U = Ut.T
-		for i in range(iteration):
-			w = w - eta*(np.dot(U,(np.dot(Ut,w)-d)))
-			for j in range(len(w)):
-				if w[j] > 0 and eta*lamb < abs(w[j]):
-					w[j] -= eta*lamb
-				elif w[j] < 0 and eta*lamb < abs(w[j]):
-					w[j] += eta*lamb
-				else:
-					w[j] = 0
-			one_error = np.dot((w-w_star).T,w-w_star)[0]
-			error.append(self.db(one_error,L2))
-			times.append(i+1)
-		exec("plt.plot(times,error,label = 'centralized_L1')")
-		return error,w
-
-	def centralized_mc(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration):
-		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
-		times = [0]
-		one_error =0
-		U = Ut.T
-		for i in range(iteration):
-			w = w - eta*(np.dot(U,(np.dot(Ut,w)-d)))
-			for j in range(len(w)):
-				if abs(w[j]) < eta*lamb:
-					w[j] = 0
-				elif eta*lamb < abs(w[j]) and abs(w[j]) < lamb/rho:
-					w[j] = w[j]*(abs(w[j])-eta*lamb)/(abs(w[j])*(1-eta*rho))
-				elif lamb/rho <= abs(w[j]):
-					w[j] = w[j]
-				else:
-					print("banana")
-					print("eta*lamb",eta*lamb,"lamb/rho =",lamb/rho,"w = ",w[j])
-			one_error = np.dot((w-w_star).T,w-w_star)[0]
-			error.append(self.db(one_error,L2))
-			times.append(i+1)
-			one_error = 0
-		plt.plot(times,error,label = "centralized_mc")
-		return error,w
+	
 
 	def one_gradient_descent(self,Ut,d,w,eta):
 		U = Ut.T

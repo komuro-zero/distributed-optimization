@@ -35,10 +35,10 @@ class update_functions(base):
 					w[j] += eta*lamb
 				else:
 					w[j] = 0
-			one_error = np.dot((w-w_star).T,w-w_star)[0]
+			one_error = np.dot((w-w_star).T,w-w_star)[0][0]
 			error.append(self.db(one_error,L2))
 			times.append(i+1)
-		exec("plt.plot(times,error,label = 'centralized_L1')")
+		plt.plot(times,error,label = 'centralized_L1')
 		return error,w
 	
 	def centralized_mc_twin(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration,m):
@@ -67,10 +67,10 @@ class update_functions(base):
 					w[j] += eta*lamb
 				else:
 					w[j] = 0
-			one_error = np.dot((w-w_star).T,w-w_star)[0]
+			one_error = np.dot((w-w_star).T,w-w_star)[0][0]
 			error.append(self.db(one_error,L2))
 			times.append(i+1)
-		exec("plt.plot(times,error,label = 'centralized mc twin prox')")
+		plt.plot(times,error,label = 'centralized mc twin prox')
 		return error,w
 
 	def centralized_mc_twin_nonconvex(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration,m):
@@ -236,7 +236,7 @@ class update_functions(base):
 			if i % 1000 == 0:
 				print(f"iteration: {i}")
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'extra mc')
+		plt.plot(times,average_error,label = 'PG-EXTRA with MC penalty')
 		return np.mean(w_all_next,axis = 0)
 
 	def pg_extra_mc_soft(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
@@ -270,7 +270,7 @@ class update_functions(base):
 		# plt.plot(times,average_convergence)
 		# plt.title("convergence over iteration")
 		# plt.show()
-		plt.plot(times,average_error,label = 'extra mc')
+		plt.plot(times,average_error,label = 'PG-EXTRA with MC penalty')
 		return np.mean(w_all_next,axis = 0),	
 
 	def pg_extra_mc_soft_nonconvex(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
@@ -334,7 +334,7 @@ class update_functions(base):
 			w_all_next = self.extra_share(Ut,d,c,c_tilde,w_all_next,w_all_before,eta,i)
 			w_all_before = copy.deepcopy(w_all_between)
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'extra')
+		plt.plot(times,average_error,label = 'EXTRA')
 		return np.mean(w_all_next,axis = 0)
 	
 	def extra_new(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
@@ -400,7 +400,7 @@ class update_functions(base):
 			if i %100 == 0:
 				print("iteration:",i)
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'extra l1')
+		plt.plot(times,average_error,label = 'PG-EXTRA with L1 penalty')
 		return np.mean(w_all_next,axis = 0)
 
 	def gradient(self,Ut,w_now,d):
