@@ -12,7 +12,7 @@ class distributed_updates(update_functions):
         self.N = 10
         self.m = 100
         self.r_i = 80
-        self.iteration =10000
+        self.iteration =2000
         self.sparsity_percentage = 0.35
         self.lamb = 4.25
         self.eta = 0.00116
@@ -55,37 +55,35 @@ class distributed_updates(update_functions):
         # extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.0000723,0.002849,self.rho,self.iteration,graph,w_all)
         
         
-        lambda_list = []
+        b_list = []
         l1_error_list = []
         mc_error_list = []
-        mc_error_rho = []
+        mc_error_lamb = []
         small_eig, big_eig = self.U_eigenvalue(U_all)
+        error_l1,wl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,3.83,0.002849,self.iteration)
         for i in range(20):
-            lamb = (i+1)*0.5
-            error_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,lamb/self.m,0.002849,self.rho,self.iteration,graph,w_all)
+            if i == 0:
+                b = 10**-10
+            else:
+                b = 0.1*i
             for j in range(50):
-                if j == 0:
-                    rho = 10**-10
-                else:
-                    rho = (j)*0.2
-                if rho <small_eig:
-                    error_mc =self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,lamb/self.m,0.002849,rho/self.m,self.iteration,graph,w_all)
-                    mc_error_rho.append(error_mc[-1])
+                lamb = 0.1*(j+1)
+                if b <(small_eig/lamb)**0.5:
+                    error_mc,wmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,lamb,0.002849,lamb*b**2,self.iteration,self.m)
+                    mc_error_lamb.append(error_mc[-1])
                     if j % 100 == 0:
                         print("iteration,",i,j)
-                else:
-                    break
-            lambda_list.append(lamb)
-            l1_error_list.append(error_l1[-1])
-            mc_error_list.append(min(mc_error_rho))
-            mc_error_rho = []
+            b_list.append(b)
+            mc_error_list.append(min(mc_error_lamb))
+            mc_error_lamb = []
 
-        plt.xlabel("lambda")
+        plt.xlabel("eta")
         plt.ylabel("Mean Square Error (dB)")
-        plt.plot(lambda_list,l1_error_list,label = "PG-EXTRA with L1 penalty")
-        plt.plot(lambda_list,mc_error_list,label = "PG-EXTRA with MC penalty")
+        plt.plot(b_list,mc_error_list,label = "PG-EXTRA with MC penalty")
+        plt.hlines(error_l1[-1],min(b_list),max(b_list),label = "PG-EXTRA with L1 penalty") 
         plt.legend()
         plt.show()
+
 
     
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.00885/self.m,0.002849,0.000999/self.m,self.iteration,graph,w_all)
