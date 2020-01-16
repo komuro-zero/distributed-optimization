@@ -9,6 +9,7 @@ import pywt
 
 class update_functions(base):
 	def centralized_gradient_descent(self,Ut,d,w,w_star,L2,eta,iteration):
+		print("here")
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
 		times = [0]
 		one_error =0
@@ -38,7 +39,7 @@ class update_functions(base):
 			one_error = np.dot((w-w_star).T,w-w_star)[0][0]
 			error.append(self.db(one_error,L2))
 			times.append(i+1)
-		plt.plot(times,error,label = 'centralized_L1')
+		# plt.plot(times,error,label = 'centralized_L1')
 		return error,w
 	
 	def centralized_mc_twin(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration,m):
@@ -70,7 +71,7 @@ class update_functions(base):
 			one_error = np.dot((w-w_star).T,w-w_star)[0][0]
 			error.append(self.db(one_error,L2))
 			times.append(i+1)
-		plt.plot(times,error,label = 'centralized mc twin prox')
+		# plt.plot(times,error,label = 'centralized mc twin prox')
 		return error,w
 
 	def centralized_mc_twin_nonconvex(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration,m):
@@ -270,8 +271,8 @@ class update_functions(base):
 		# plt.plot(times,average_convergence)
 		# plt.title("convergence over iteration")
 		# plt.show()
-		plt.plot(times,average_error,label = 'PG-EXTRA with MC penalty')
-		return np.mean(w_all_next,axis = 0),	
+		# plt.plot(times,average_error,label = 'PG-EXTRA with MC penalty')
+		return average_error
 
 	def pg_extra_mc_soft_nonconvex(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
@@ -400,8 +401,8 @@ class update_functions(base):
 			if i %100 == 0:
 				print("iteration:",i)
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'PG-EXTRA with L1 penalty')
-		return np.mean(w_all_next,axis = 0)
+		# plt.plot(times,average_error,label = 'PG-EXTRA with L1 penalty')
+		return average_error
 
 	def gradient(self,Ut,w_now,d):
 		w = copy.deepcopy(w_now)

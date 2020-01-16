@@ -14,7 +14,7 @@ class distributed_updates(update_functions):
         self.r_i = 80
         self.iteration =50  
         self.sparsity_percentage = 0.35
-        self.lamb = 1.69
+        self.lamb = 4.25
         self.eta = 0.00116
         self.B = 0.001
         self.rho = self.lamb*((self.B)**2)
@@ -82,9 +82,11 @@ class distributed_updates(update_functions):
 
         #N10 m100 ri80 noise10 1db
         error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.002849,self.iteration)
-        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,1.35,0.002849,self.iteration)
-        error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,1.69,0.002849,1.885,self.iteration,self.m)
-        error,wcmc = self.centralized_mc_twin_nonconvex(U_all,d_all,w,w_star,L2,1.69,0.002849,1.5,self.iteration,self.m)
+        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,3.83,0.002849,self.iteration)
+        error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,4.25,0.002849,3.7,self.iteration,self.m)
+        # error,wcmc = self.centralized_mc_twin_nonconvex(U_all,d_all,w,w_star,L2,4.3,0.002849,3.7,self.iteration,self.m)
+        # error,wcmc = self.centralized_mc_twin_nonconvex(U_all,d_all,w,w_star,L2,4.2,0.002849,3.7,self.iteration,self.m)
+        # error,wcmc = self.centralized_mc_twin_nonconvex(U_all,d_all,w,w_star,L2,4.1,0.002849,3.7,self.iteration,self.m)
 
         # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,0.00000001,0.002849,0.055,self.iteration,self.m)
 
