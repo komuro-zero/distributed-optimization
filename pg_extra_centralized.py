@@ -12,7 +12,7 @@ class distributed_updates(update_functions):
         self.N = 10
         self.m = 100
         self.r_i = 80
-        self.iteration =1000
+        self.iteration =50  
         self.sparsity_percentage = 0.35
         self.lamb = 1.69
         self.eta = 0.00116
@@ -81,10 +81,10 @@ class distributed_updates(update_functions):
         # error,wcmc = self.centralized_mc_twin_nonconvex(U_all,d_all,w,w_star,L2,1.69,0.002849,1.5,self.iteration,self.m)
 
         #N10 m100 ri80 noise10 1db
-        error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.000167,self.iteration)
-        # error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,1.35,0.000167,self.iteration)
-        # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,1.69,0.000167,1.885,self.iteration,self.m)
-        # error,wcmc = self.centralized_mc_twin_nonconvex(U_all,d_all,w,w_star,L2,1.69,0.000167,1.5,self.iteration,self.m)
+        error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.002849,self.iteration)
+        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,1.35,0.002849,self.iteration)
+        error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,1.69,0.002849,1.885,self.iteration,self.m)
+        error,wcmc = self.centralized_mc_twin_nonconvex(U_all,d_all,w,w_star,L2,1.69,0.002849,1.5,self.iteration,self.m)
 
         # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,0.00000001,0.002849,0.055,self.iteration,self.m)
 
@@ -111,9 +111,9 @@ class distributed_updates(update_functions):
         # extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.1,0.00000657,self.rho,self.iteration,graph,w_all)
         plt.legend()
         plt.show()
-        x = range(len(extra_mc))
-        plt.plot(x,wcmc,label = "cent")
-        plt.plot(x,extra_mc,label = "pg extra")
+        x = range(len(wcmc))
+        plt.plot(x,wcmc,label = "mc")
+        plt.plot(x,wcl1,label = "l1")
         # plt.plot(x,extra_mc_non,label = "extra")
         # plt.plot(x,extra_l1,label = "L1")
         # plt.plot(x,extra_mc,label = "mc")
