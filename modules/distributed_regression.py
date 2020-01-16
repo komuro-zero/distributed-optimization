@@ -9,7 +9,6 @@ import pywt
 
 class update_functions(base):
 	def centralized_gradient_descent(self,Ut,d,w,w_star,L2,eta,iteration):
-		print("here")
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
 		times = [0]
 		one_error =0
