@@ -154,7 +154,7 @@ class base():
 			result[i][i]=1
 		return result
 	
-	def make_range(self,m):
+	def 	_range(self,m):
 		result =[]
 		for i in range(m):
 			result.append(i)
