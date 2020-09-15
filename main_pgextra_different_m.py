@@ -12,7 +12,7 @@ class distributed_updates(update_functions):
         self.N = 100
         self.m = 1000
         self.r_i = 80
-        self.iteration =5000
+        self.iteration =20000
         self.sparsity_percentage = 0.1
         self.lamb = 1.69
         self.eta = 0.00002849

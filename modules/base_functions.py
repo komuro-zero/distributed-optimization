@@ -4,6 +4,10 @@ from numpy.random import *
 import matplotlib.pyplot as plt
 import numpy.linalg as LA
 import copy
+import random 
+from statistics import mean
+
+
 
 #np.random.seed(0)
 
@@ -63,46 +67,46 @@ class base():
 		return smallest_eigen,biggest_eigen
 	
 	def params_checker(self,rho,lamb,eta,U_all,B,m,N,graph):
-		small_eig, big_eig = self.U_eigenvalue(U_all)
-		print("b <",(small_eig/lamb)**0.5)
+		small_eig, big_eig = self.U_eigenvalue(U_all.T@U_all)
+		self.lipschitz_checker(U_all,B,m,eta,lamb)
+		print(f"convexity condition of mc: b ({B}) should be smaller than ",(small_eig/lamb)**0.5)
+		print(f"convexity condition of mc: lambda ({lamb}) should be smaller than ",(small_eig/(B**2)))
 		print("rho must be smaller than",small_eig)
 		if rho > small_eig:
 			print("rho is bigger than the smallest eigen",small_eig,"rho = ",rho)
 			exit()
-		elif eta > 2/big_eig:
-			print("eta may be too big")
-		print("eta should be smaller than :",2/big_eig)
+		print(f"distributed approximate mc: {lamb*B**2}<1 should satisfy")
+		if lamb*B**2 >= 1:
+			exit()
 		self.rho_checker(rho,lamb,eta)
-		self.lipschitz_checker(U_all,B,m,eta,lamb)
-		self.distributed_lipschitz_checker(U_all,B,m,eta,N,lamb)
+		self.distributed_lipschitz_checker(U_all,B,m,eta,N,lamb,(1/2)*(np.eye(len(graph))+graph))
 		self.disjoint_checker(graph,m)
 	
 	def lipschitz_checker(self,U,B,m,eta,lamb):
-		X = U@U.T-(B**2)*lamb*np.eye(m)
+		X = U@U.T
 		U, s, V = np.linalg.svd(X)
 		lpz = 2/max(s)
 		if lpz < eta:
-			print(f"eta must be smaller than {lpz}")
-			exit()
+			print(f"centralized condition: eta must be smaller than {lpz}")
+			# exit()
 	
 	def lipschitz_checker_L1(self,U,m,eta,lamb):
 		X = U@U.T
 		U, s, V = np.linalg.svd(X)
 		lpz = 2/max(s)
 		if lpz < eta:
-			print(f"eta must be smaller than {lpz/2}")
+			print(f"L1 eta must be smaller than {lpz/2}")
 			exit()
 	
-	def distributed_lipschitz_checker(self,U,B,m,eta,N,lamb):
+	def distributed_lipschitz_checker(self,U,B,m,eta,N,lamb,c):
 		for u in U:
 			ut = np.reshape(u,(len(u),1)) 
 			um = np.reshape(u,(1,len(u)))
-			x = ut@um-(B**2)*lamb*np.eye(N)
-			U, s, V = np.linalg.svd(x)
-			lpz = 2/max(s)
-			if lpz < eta:
-				print(f"eta must be smaller than {lpz}")
-				exit()
+			lip =(B**2)*lamb/2+ abs(um@ut-lamb*(B**2)/2)
+			U, s, V = np.linalg.svd(c)
+			lpz = 2*min(s)/lip
+			if lpz[0][0] < eta:
+				print(f"distributed condition: eta {eta} must be smaller than {lpz}")
 
 	def centralized_convexity_checker(self,B,lamb,U,N):
 		B2 = B*B*np.eye(N)
@@ -189,18 +193,27 @@ class base():
 		return result
 
 	def undirected_graph(self,m,r_i):
+		r_i += 1
 		graph = np.eye(m)
-		checklist = self.make_checklist(r_i,m)
-		for i in range(m):
-			connected = sum(graph[i])
-			while connected < r_i+1:
-				select = np.random.randint(len(checklist))
-				connect_node = checklist[select]
-				if graph[i][connect_node] != 1 and self.horizontal_checker(graph,connect_node,i,r_i):
-					graph[i][connect_node] = 1
-					connected += 1
-					graph[connect_node][i] =1
-					checklist.pop(select)
+		list_num = list(range(m))
+		vertex_dict = dict(zip(list_num,[{i} for i in list_num]))
+		i = 0
+		while i < r_i:
+			for edge_num in range(len(graph)):
+				count = 0
+				while len(vertex_dict[edge_num]) < i + 1:
+					rand = random.randint(0,m-1)
+					if rand != edge_num and rand not in vertex_dict[edge_num] and len(vertex_dict[rand]) < r_i:
+						vertex_dict[edge_num].add(rand)
+						vertex_dict[rand].add(edge_num)
+					count += 1
+					if count > 500:
+						vertex_dict = dict(zip(list_num,[{i} for i in list_num]))
+						i = -1
+			i += 1
+		for i in vertex_dict:
+			for j in vertex_dict[i]:
+				graph[i][j] = 1
 		return graph
 	
 	def undirected_graph_new(self,m,r_i):
@@ -283,8 +296,13 @@ class base():
 		each_errors = []
 		for w in w_all:
 			w = np.reshape(w,(N,1))
-			each_errors.append(self.db(((np.reshape(w-w_star,(1,N)))@(w-w_star))[0][0],L2))
-		this_error = sum(each_errors)/m
+			each_errors.append(((np.reshape(w-w_star,(1,N)))@(w-w_star))[0][0])
+		this_error = self.db(mean(each_errors),L2)
+		return this_error
+
+	def error_consensus(self,w_all,N,L2,m,c_2):
+		error = w_all - c_2@w_all
+		this_error = self.db(np.linalg.norm(error, ord=2)**2,L2)
 		return this_error
 
 	def make_variables(self,N,m,sparsity_percentage,how_weakly_sparse,w_noise):
@@ -298,6 +316,16 @@ class base():
 		L2 = np.dot(w_star.T,w_star)
 
 		return w,w_star,U_all,d_all,L2
+	
+	def make_variables_2(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
+		w = np.random.randn(N,1)
+		w_star = self.w_star(N,sparsity_percentage)
+		U_all = np.random.randn(m,N)
+		d_all = np.dot(U_all,w_star)
+		L2 = np.dot(w_star.T,w_star)[0][0]
+		graph = self.undirected_graph_new(m,r_i)
+		w_all = self.make_w(m,N)
+		return w,w_star,w_all,U_all,d_all,L2,graph
 
 	def make_variables_noise_after(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
 		w = np.random.randn(N,1)
@@ -308,7 +336,20 @@ class base():
 		variance_s = variance_n*10**(-w_noise/10)
 		d_all += np.random.normal(loc= 0,scale = variance_s**(0.5),size = (m,1))
 		L2 = np.dot(w_star.T,w_star)[0][0]
-		graph = self.undirected_graph_new(m,r_i)
+		graph = self.undirected_graph(m,r_i)
+		w_all = self.make_w(m,N)
+		return w,w_star,w_all,U_all,d_all,L2,graph
+	
+	def make_variables_noise_after_2(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
+		w = np.random.randn(N,1)
+		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
+		U_all = np.random.rand(m,N)
+		d_all = np.dot(U_all,w_star)
+		variance_n = np.var(d_all)
+		variance_s = variance_n*10**(-w_noise/10)
+		d_all += np.random.normal(loc= 0,scale = variance_s**(0.5),size = (m,1))
+		L2 = np.dot(w_star.T,w_star)[0][0]
+		graph = self.undirected_graph(m,r_i)
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 
@@ -318,7 +359,7 @@ class base():
 		U_all = np.random.randn(m,N)
 		d_all = np.dot(U_all,w_star)
 		L2 = np.dot(w_star.T,w_star)[0][0]
-		graph = self.undirected_graph_new(m,r_i)
+		graph = self.undirected_graph(m,r_i)
 		w_all = self.make_w(m,N)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 

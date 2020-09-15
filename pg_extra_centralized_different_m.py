@@ -1,5 +1,4 @@
-import numpy as np
-import matplotlib.pyplot as plt
+
 from numpy.random import *
 from modules.distributed_regression import update_functions
 
@@ -19,7 +18,7 @@ class distributed_updates(update_functions):
         self.B = 0.001
         self.rho = self.lamb*((self.B)**2)
         self.how_weakly_sparse = 0.01
-        self.w_noise = 10
+        self.w_noise = 30
 
     def run(self):
         w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_noise_after(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
@@ -32,8 +31,10 @@ class distributed_updates(update_functions):
         # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,0.93,0.00092,6,self.iteration,self.m)
 
         #N100 m1000 sparsity10 wnoise30 3db
-        # error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.00092,self.iteration)
-        # error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,1.05,0.00092,self.iteration)
+        error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.00092,self.iteration)
+        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.67,0.00092,self.iteration)
+        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.68,0.00092,self.iteration)
+        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,0.69,0.00092,self.iteration)
         # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,1.8,0.00092,6,self.iteration,self.m)
 
         #N100 m10000 sparsity10 wnoise30 2db 
@@ -52,9 +53,9 @@ class distributed_updates(update_functions):
         # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,0.8,0.00092,2.5,self.iteration,self.m)
 
         #N100 m1000 sparsity10 wnoise10 weaklysparse0.01 2dB
-        error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.00092,self.iteration)
-        error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,11,0.00092,self.iteration)
-        error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,11.5,0.00092,6,self.iteration,self.m)
+        # error_cgd,wcgd = self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.00092,self.iteration)
+        # error,wcl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,11,0.00092,self.iteration)
+        # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,11.5,0.00092,6,self.iteration,self.m)
         
         plt.legend()
         plt.show()
