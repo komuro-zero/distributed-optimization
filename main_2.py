@@ -16,14 +16,14 @@ class distributed_updates(update_functions):
         self.N = 100
         self.m = 1000
         self.r_i = 10
-        self.iteration = 10000
-        self.sparsity_percentage = 0.2
+        self.iteration = 4000
+        self.sparsity_percentage = 0.3
         self.lamb = 0.31
         self.eta = 0.0045
         self.B = 0.1
         self.rho = self.lamb*((self.B)**2)
         self.how_weakly_sparse = 0.01
-        self.w_noise = 20
+        self.w_noise = 10
 
     def run(self):
         w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_noise_after_2(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
@@ -35,6 +35,9 @@ class distributed_updates(update_functions):
         plt.rcParams['ytick.major.width'] = 1.0#y軸主目盛り線の線幅
         plt.rcParams['font.size'] = 10 #フォントの大きさ
         plt.rcParams['axes.linewidth'] = 1.0# 軸の線幅edge linewidth。囲みの太さ
+        
+        error,wcmc = self.centralized_L1(U_all,d_all,w,w_star,L2,0.45,0.00007,self.iteration)
+        # error,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,0.75,0.00007,10,self.iteration)
 
         # self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.029,self.rho,self.iteration,graph,w_all)
         # self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.01,self.rho,self.iteration,graph,w_all)
@@ -47,13 +50,11 @@ class distributed_updates(update_functions):
         # self.atc_dig(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.37,self.rho,self.iteration,graph,w_all)
         
         # self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.056/self.m,0.088,1,self.iteration,graph,w_all)
-        # self.distributed_proximal_gradient_algorithm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1/self.m,0.00014,1,self.iteration,graph,w_all)
-        # self.distributed_proximal_gradient_algorithm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1/self.m,0.0002,1,self.iteration,graph,w_all)
-        self.distributed_proximal_gradient_algorithm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1/self.m,0.0003,1,self.iteration,graph,w_all)
-        # self.distributed_proximal_gradient_algorithm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.1/self.m,0.00014,1,self.iteration,graph,w_all)
-        # self.distributed_proximal_gradient_algorithm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.01/self.m,0.00014,1,self.iteration,graph,w_all)
+        self.distributed_proximal_gradient_algorithm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.04,0.00007/self.m,self.iteration,graph,w_all)
 
-        # self.distributed_proximal_gradient_algorithm_firm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.22/self.m,0.14,0.034,self.iteration,graph,w_all)
+        self.distributed_proximal_gradient_algorithm_firm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.01,10/self.m,self.iteration,graph,w_all)
+        self.distributed_proximal_gradient_algorithm_firm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.02,10/self.m,self.iteration,graph,w_all)
+        self.distributed_proximal_gradient_algorithm_firm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.03,10/self.m,self.iteration,graph,w_all)
         # self.distributed_proximal_gradient_algorithm_approximate_MC(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.06/self.m,0.14,0.0001,self.iteration,graph,w_all)
 
         # extra = self.ADDA(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,L2*1.95,0.54,1,self.iteration,graph,w_all)
@@ -112,13 +113,13 @@ class distributed_updates(update_functions):
         pdf.savefig()
         plt.legend()
         plt.show()
-        x  = range(len(w_star))
-        plt.plot(x,extra,label = "extra")
-        # plt.plot(x,wcl1,label = "L1")
-        # plt.plot(x,wcmc,label = "mc")
-        plt.plot(x,w_star,color = "black")
-        plt.legend()
-        plt.show()
+        # x  = range(len(w_star))
+        # plt.plot(x,extra,label = "extra")
+        # # plt.plot(x,wcl1,label = "L1")
+        # # plt.plot(x,wcmc,label = "mc")
+        # plt.plot(x,w_star,color = "black")
+        # plt.legend()
+        # plt.show()
 
 if __name__ == "__main__":
     simulation = distributed_updates()

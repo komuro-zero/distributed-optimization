@@ -22,6 +22,7 @@ class update_functions(base):
 		return error,w
 
 	def centralized_L1(self,Ut,d,w,w_star,L2,lamb,eta,iteration):
+		w = np.zeros_like(w)
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)]
 		times = [0]
 		one_error =0
