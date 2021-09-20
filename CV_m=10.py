@@ -113,16 +113,16 @@ class distributed_updates(update_functions):
                         error_centralized_mc,wcmc = self.centralized_mc(one_train_U_all,one_train_d_all,w,one_train_w_star,L2,0.039,0.001,0.0013,self.iteration)
                         error_l1,w_l1=self.pg_extra_l1(one_train_U_all,one_train_d_all,one_train_w_star,L2,self.N,self.m,self.r_i,0.039/self.m,0.02,0.09,self.iteration,one_train_graph,w_all,0,1)
                         error_amc,wamc = self.pg_extra_approximate_mc(one_train_U_all,one_train_d_all,one_train_w_star,L2,self.N,self.m,self.r_i,0.041/self.m,0.04,0.087/self.m,self.iteration,one_train_graph,w_all,1)
-                        if error_centralized_mc < mc_error_best:
-                            mc_error_best = error_centralized_mc
+                        if error_centralized_mc[-1] < mc_error_best:
+                            mc_error_best = error_centralized_mc[-1]
                             mc_optimal_lambda = mc_lamb
                             mc_optimal_rho = mc_rho
-                        if error_amc < amc_error_best:
-                            amc_error_best = error_amc
+                        if error_amc[-1] < amc_error_best:
+                            amc_error_best = error_amc[-1]
                             amc_optimal_lambda = amc_lamb
                             amc_optimal_rho = amc_rho
-                        if error_l1 < l1_error_best:
-                            l1_error_best = error_l1
+                        if error_l1[-1] < l1_error_best:
+                            l1_error_best = error_l1[-1]
                             l1_optimal_lambda = l1_lamb
                         print("batch number : ",i,"\n train number : ",train ,"\n delta lambda : ",delta_lambda,"\n delta rho : ",delta_rho)
             for test in range(test_number):
@@ -142,9 +142,9 @@ class distributed_updates(update_functions):
                 error_centralized_mc,wcmc = self.centralized_mc(one_test_U_all,one_test_d_all,w,one_test_w_star,L2,0.039,0.001,0.0013,self.iteration)
                 error_l1,w_l1=self.pg_extra_l1(one_test_U_all,one_test_d_all,one_test_w_star,L2,self.N,self.m,self.r_i,0.039/self.m,0.02,0.09,self.iteration,one_test_graph,w_all,0,1)
                 error_amc,wamc = self.pg_extra_approximate_mc(one_test_U_all,one_test_d_all,one_test_w_star,L2,self.N,self.m,self.r_i,0.041/self.m,0.04,0.087/self.m,self.iteration,one_test_graph,w_all,1)
-                mc_test_error.append(error_centralized_mc)
-                amc_test_error.append(error_amc)
-                l1_test_error.append(error_l1)
+                mc_test_error.append(error_centralized_mc[-1])
+                amc_test_error.append(error_amc[-1])
+                l1_test_error.append(error_l1[-1])
 
         print(sum(mc_test_error)/len(mc_test_error))                
         print(sum(amc_test_error)/len(amc_test_error))                
