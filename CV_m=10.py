@@ -124,7 +124,10 @@ class distributed_updates(update_functions):
                         if error_l1 < l1_error_best:
                             l1_error_best = error_l1
                             l1_optimal_lambda = l1_lamb
+                        print("batch number : ",i,"\n train number : ",train ,"\n delta lambda : ",delta_lambda,"\n delta rho : ",delta_rho)
             for test in range(test_number):
+                print("batch number : ",i,"\n test number : ",test , "\n delta lambda : ",delta_lambda,"\n delta rho : ",delta_rho)
+
                 one_test_w_star = test_w_star_list[test*self.N:(test+1)*self.N]
                 one_test_w_star = one_test_w_star.reshape(self.N,1)
                 one_test_d_all = test_d_all_list[test*self.N:(test+1)*self.N]
