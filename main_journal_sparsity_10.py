@@ -15,8 +15,8 @@ class distributed_updates(update_functions):
         self.N = 32
         self.m = 64
         self.r_i = 16   
-        self.iteration = 1000
-        self.sparsity_percentage = 0.3
+        self.iteration = 100
+        self.sparsity_percentage = 0.1
         self.lamb = 0.31    
         self.eta = 0.0045
         self.B = 0.1
@@ -43,10 +43,41 @@ class distributed_updates(update_functions):
         plt.rcParams['font.size'] = 10 #フォントの大きさ
         plt.rcParams['axes.linewidth'] = 1.0# 軸の線幅edge linewidth。囲みの太さ
         self.centralized_gradient_descent(U_all,d_all,w,w_star,L2,0.01,self.iteration)
-        self.centralized_L1(U_all,d_all,w,w_star,L2,0.91,0.01,self.iteration)
-        error_centralized_mc,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,2.5,0.01,8,self.iteration)
-        error_centralized_scad,wcmc = self.centralized_scad(U_all,d_all,w,w_star,L2,0.036,0.01,0.001,self.iteration)
+        self.centralized_L1(U_all,d_all,w,w_star,L2,3,0.01,self.iteration)
+        error_centralized_mc,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,3.5,0.01,7.3,self.iteration)
+
+        # thresh = 0
+        # for i in range(100):
+        #     lamb = 0.1*i+0.1
+        #     error_l1,wl1 = self.centralized_L1(U_all,d_all,w,w_star,L2,lamb,0.01,self.iteration)
+        #     if error_l1 != None:
+        #         if error_l1[-1] < thresh:
+        #             thresh = error_l1[-1]
+        #             optimal_lamb = lamb
+        # print(optimal_lamb)
+        # thresh = 0
+        # for i in range(200):
+        #     for j in range(100):
+        #         lamb = 0.1*i+0.1
+        #         rho = 0.08*j+0.08
+        #         error_centralized_mc,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,lamb,0.01,rho,self.iteration)
+        #         if error_centralized_mc != None:
+        #             if error_centralized_mc[-1] < thresh:
+        #                 thresh = error_centralized_mc[-1]
+        #                 optimal_lamb = lamb
+        #                 optimal_rho = rho
+        # print(optimal_lamb,optimal_rho)
+
+        # error_centralized_scad,wcmc = self.centralized_scad(U_all,d_all,w,w_star,L2,0.036,0.01,0.001,self.iteration)
         # error_centralized_mc,wcmc = self.centralized_scad(U_all,d_all,w,w_star,L2,lamb,0.01,rho,self.iteration)
+
+        # self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.91/self.m,0.02,0.09,self.iteration,graph,w_all)
+        # self.pg_extra_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.5/self.m,0.02,8/self.m,self.iteration,graph,w_all)
+        # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.5/self.m,1,8/self.m,self.iteration,graph,w_all,0,1)
+        # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.5/self.m,1,8/self.m,self.iteration,graph,w_all,0.1,1)
+        # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.5/self.m,1,8/self.m,self.iteration,graph,w_all,0.01,1)
+        # self.pg_extra_scad(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.036,0.02,0.001,self.iteration,graph,w_all)
+
 
         # error_centralized_mc,wcmc = self.centralized_scad(U_all,d_all,w,w_star,L2,0.04,0.01,2,self.iteration)
         # error_centralized_dual_soft,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,2.2,0.01,0.09*self.m,self.iteration,self.m)
@@ -64,11 +95,6 @@ class distributed_updates(update_functions):
         
 
 
-        # self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.91/self.m,0.02,0.09,self.iteration,graph,w_all)
-        # self.pg_extra_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.5/self.m,0.02,8/self.m,self.iteration,graph,w_all)
-        # self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.5/self.m,0.02,8/self.m,self.iteration,graph,w_all)
-        # self.pg_extra_scad(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.036,0.02,0.001,self.iteration,graph,w_all)
-        # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.2/self.m,1,0.09,self.iteration,graph,w_all,100,0.1)
         # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.2/self.m,1,0.09,self.iteration,graph,w_all,10,0.1)
         # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.2/self.m,1,0.09,self.iteration,graph,w_all,1,0.1)
         # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,2.2/self.m,1,0.09,self.iteration,graph,w_all,1,0.1)

@@ -43,7 +43,8 @@ class distributed_updates(update_functions):
         # extra = self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.00096,self.rho,self.iteration,graph,w_all)
         # extra_l1 = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1.0605/self.m,0.00096,self.rho,self.iteration,graph,w_all)
         extra_mc = self.pg_extra_mc_soft(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1.81/self.m,0.00096,5.75/self.m,self.iteration,graph,w_all)
-        extra_mc = self.pg_extra_mc_soft_nonconvex(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1.807/self.m,0.00096,16.15/self.m,self.iteration,graph,w_all)
+        self.distributed_proximal_gradient_algorithm_approximate_MC(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1.81/self.m,0.01,5.75/self.m,self.iteration,graph,w_all)
+        # extra_mc = self.pg_extra_mc_soft_nonconvex(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1.807/self.m,0.00096,16.15/self.m,self.iteration,graph,w_all)
         # error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,1.81,0.00096,5.75,self.iteration,self.m)
         # error_nonconvex,wcmcnc = self.centralized_mc_twin_nonconvex(U_all,d_all,w,w_star,L2,1.807,0.00096,16.15,self.iteration,self.m)
         

@@ -15,18 +15,19 @@ class distributed_updates(update_functions):
 
         self.N = 100
         self.m = 1000
-        self.r_i = 10
-        self.iteration = 4000
+        self.r_i = 80
+        self.iteration = 15000
         self.sparsity_percentage = 0.3
         self.lamb = 0.31
         self.eta = 0.0045
         self.B = 0.1
         self.rho = self.lamb*((self.B)**2)
-        self.how_weakly_sparse = 0.01
-        self.w_noise = 10
+        self.how_weakly_sparse = 0
+        self.w_noise = 30
+        self.normal_distribution = True
 
     def run(self):
-        w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_noise_after_2(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise)
+        w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_noise_after_2(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise,self.normal_distribution)
         plt.rcParams["font.family"] = "Times New Roman" 
         pdf = PdfPages('main performance comparison journal.pdf')
         plt.rcParams['xtick.direction'] = 'in'#x軸の目盛線が内向き('in')か外向き('out')か双方向か('inout')
@@ -36,8 +37,9 @@ class distributed_updates(update_functions):
         plt.rcParams['font.size'] = 10 #フォントの大きさ
         plt.rcParams['axes.linewidth'] = 1.0# 軸の線幅edge linewidth。囲みの太さ
         
-        error,wcmc = self.centralized_L1(U_all,d_all,w,w_star,L2,0.45,0.00007,self.iteration)
-        # error,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,0.75,0.00007,10,self.iteration)
+        error,wcmc = self.centralized_L1(U_all,d_all,w,w_star,L2,0.6,0.00007,self.iteration)
+        # error,wcmc = self.centralized_mc(U_all,d_all,w,w_star,L2,1.8,0.00007,25,self.iteration)
+        error,wcmc = self.centralized_mc_twin(U_all,d_all,w,w_star,L2,1.8,0.00007,11.5,self.iteration,self.m)
 
         # self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.029,self.rho,self.iteration,graph,w_all)
         # self.extra(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.01,self.rho,self.iteration,graph,w_all)
@@ -50,12 +52,12 @@ class distributed_updates(update_functions):
         # self.atc_dig(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,self.lamb,0.37,self.rho,self.iteration,graph,w_all)
         
         # self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.056/self.m,0.088,1,self.iteration,graph,w_all)
-        self.distributed_proximal_gradient_algorithm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.04,0.00007/self.m,self.iteration,graph,w_all)
 
-        self.distributed_proximal_gradient_algorithm_firm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.01,10/self.m,self.iteration,graph,w_all)
-        self.distributed_proximal_gradient_algorithm_firm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.02,10/self.m,self.iteration,graph,w_all)
-        self.distributed_proximal_gradient_algorithm_firm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.03,10/self.m,self.iteration,graph,w_all)
-        # self.distributed_proximal_gradient_algorithm_approximate_MC(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.06/self.m,0.14,0.0001,self.iteration,graph,w_all)
+
+        # self.distributed_proximal_gradient_algorithm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.6/self.m,0.01,0.00007/self.m,self.iteration,graph,w_all)
+        # self.distributed_proximal_gradient_algorithm_firm(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1.8/self.m,0.01,25/self.m,self.iteration,graph,w_all)
+        self.distributed_proximal_gradient_algorithm_approximate_MC(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1.8/self.m,0.01,11.5/self.m,self.iteration,graph,w_all)
+        # self.distributed_proximal_gradient_algorithm_approximate_MC(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,1.8/self.m,0.01,25/self.m,self.iteration,graph,w_all)
 
         # extra = self.ADDA(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,L2*1.95,0.54,1,self.iteration,graph,w_all)
         # extra = self.dista(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.02,0.22,1,self.iteration,graph,w_all,0.5)

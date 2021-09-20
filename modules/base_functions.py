@@ -6,10 +6,12 @@ import numpy.linalg as LA
 import copy
 import random 
 from statistics import mean
+import networkx as nx
+import math
 
 
 
-#np.random.seed(0)
+# np.random.seed(0)
 
 class base():
 	def w_star(self,N,sparse_percentage):
@@ -21,6 +23,15 @@ class base():
 			w_star[a] = 0
 			after_length = len(np.unique(w_star))-1  
 		return w_star
+
+	def w_sin(self,w,a):
+		w_copy = copy.deepcopy(w)
+		for i in range(len(w_copy)):
+			if abs(w[i]) > a:
+				w_copy[i] = 0
+			else:
+				w_copy[i] = 0.5*math.pi*(math.sin(math.pi*w[i]/a))/a
+		return w_copy
 	
 	def w_star_weakly_sparse(self,N,sparse_percentage,how_weak):
 		w_star = np.random.randn(N,1)     
@@ -114,8 +125,10 @@ class base():
 		small_eig =  min(LA.eig(x)[0])
 		if small_eig < 0:
 			print(f"your smallest eigenvalue is {small_eig}. it is nonconvex.")
+			return False
 		else:
-			print("your function is centrally convex. go fuck yourself")
+			# print("your function is centrally convex. go fuck yourself")
+			return True
 
 	def distributed_convexity_checker(self,B,lamb,U,N):
 		for u in U:
@@ -125,7 +138,7 @@ class base():
 			x = (N/lamb)*np.dot(ut,u)-B2
 			small_eig =  min(LA.eig(x)[0])
 			if small_eig < 0:
-				#print(f"your smallest eigenvalue is {small_eig}. it is nonconvex.")
+				print(f"your smallest eigenvalue is {small_eig}. it is nonconvex.")
 				pass
 			else:
 				print("your function is convex. go fuck yourself")
@@ -142,6 +155,17 @@ class base():
 					c[j][random_num] = 1
 					counter += 1
 		return c
+	
+	def pg_extra_step_size(self,Ut,M_tilde):
+		L_max = 0
+		for u in Ut:
+			ut = np.reshape(u,(len(u),1)) 
+			um = np.reshape(u,(1,len(u)))
+			lip =abs(um@ut)
+			if lip > L_max:
+				L_max  = lip[0][0]
+		small_eig, big_eig = self.U_eigenvalue(M_tilde)
+		return 2*small_eig/L_max
 	
 	def disjointed_directed_graph(self,m,r_i):
 		a = [1]*r_i
@@ -191,6 +215,18 @@ class base():
 			print(graph)
 			exit()
 		return result
+
+	def ring_graph(self,m,r_i):
+		graph = np.eye(m)
+		for i in range(m):
+			for j in range(int(r_i/2)):
+				if i+j+1 < m:
+					graph[i][i+j+1] = 1
+					graph[i+j+1][i] = 1
+				else:
+					graph[i][i+j+1-m] = 1
+					graph[i+j+1-m][i] = 1
+		return graph
 
 	def undirected_graph(self,m,r_i):
 		r_i += 1
@@ -271,8 +307,10 @@ class base():
 			last_length = now_length
 		if len(connected_node) == m:
 			print("Your graph is not disjoint")
+			return False
 		else:
 			print("Your graph is disjoint. connected nodes:",now_length)
+			return True
 
 	def w_average(self,w_all,w_star):
 		result = [0]*len(w_all[0])
@@ -286,10 +324,15 @@ class base():
 		#plt.show()
 		return result
 	
-	def make_w(self,m,N):
-		w = np.random.randn(N,1).T
-		for i in range(m-1):
-			w = np.concatenate((w,np.random.randn(N,1).T))
+	def make_w(self,m,N,w_zero):
+		if w_zero:
+			w = np.zeros((N,1)).T
+			for i in range(m-1):
+				w = np.concatenate((w,np.zeros((N,1)).T))
+		else:
+			w = np.random.randn(N,1).T
+			for i in range(m-1):
+				w = np.concatenate((w,np.random.randn(N,1).T))
 		return w
 
 	def error_distributed(self,w_all,w_star,N,L2,m):
@@ -297,7 +340,18 @@ class base():
 		for w in w_all:
 			w = np.reshape(w,(N,1))
 			each_errors.append(((np.reshape(w-w_star,(1,N)))@(w-w_star))[0][0])
-		this_error = self.db(mean(each_errors),L2)
+		try:
+			this_error = self.db(mean(each_errors),L2)
+			return this_error
+		except:
+			return 0
+	
+	def error_distributed_2(self,w_all,w_star,N,L2,m):
+		each_errors = []
+		for w in w_all:
+			w = np.reshape(w,(N,1))
+			each_errors.append(self.db(((np.reshape(w-w_star,(1,N)))@(w-w_star))[0][0],L2))
+		this_error = mean(each_errors)
 		return this_error
 
 	def error_consensus(self,w_all,N,L2,m,c_2):
@@ -337,20 +391,103 @@ class base():
 		d_all += np.random.normal(loc= 0,scale = variance_s**(0.5),size = (m,1))
 		L2 = np.dot(w_star.T,w_star)[0][0]
 		graph = self.undirected_graph(m,r_i)
-		w_all = self.make_w(m,N)
+		w_all = self.make_w(m,N,False)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 	
-	def make_variables_noise_after_2(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
-		w = np.random.randn(N,1)
+	def make_variables_noise_after_2(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise,normal_distribution,w_zero):
+		if w_zero:
+			w = np.zeros((N,1))
+		else:
+			w = np.random.randn(N,1)
 		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
-		U_all = np.random.rand(m,N)
+		if normal_distribution:
+			U_all = np.random.randn(m,N)
+		else:
+			random_matrix = np.random.rand(m,N)
+			standard_deviation = np.std(random_matrix)
+			average_random_matrix = np.average(random_matrix)
+			U_all_not_standard = random_matrix-average_random_matrix*np.ones((m,N))
+			U_all = U_all_not_standard/standard_deviation
+		d_all = np.dot(U_all,w_star)
+		if w_noise != 0:
+			variance_n = np.var(d_all)
+			variance_s = variance_n*10**(-w_noise/10)
+			d_all += np.random.normal(loc= 0,scale = variance_s**(0.5),size = (m,1))
+		L2 = np.dot(w_star.T,w_star)[0][0]
+		graph_flag = True
+		while graph_flag:
+			graph = self.undirected_graph(m,r_i)
+			graph_flag = self.disjoint_checker(graph,m)
+		w_all = self.make_w(m,N,w_zero)
+		return w,w_star,w_all,U_all,d_all,L2,graph
+	
+	def make_variables_noise_after_2_deviated_average(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise,normal_distribution,w_zero,average_of_u):
+		if w_zero:
+			w = np.zeros((N,1))
+		else:
+			w = np.random.randn(N,1)
+		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
+		if normal_distribution:
+			U_all = np.random.randn(m,N)
+		else:
+			random_matrix = np.random.rand(m,N)
+			standard_deviation = np.std(random_matrix)
+			U_all_not_standard = random_matrix/(standard_deviation) 
+			average_random_matrix = np.average(U_all_not_standard)
+			U_all = U_all_not_standard - (average_random_matrix-average_of_u)*np.ones((m,N))
+			average_random_matrix = np.average(U_all)
+			standard_deviation = np.std(U_all)
+			print(standard_deviation,average_random_matrix)
+		d_all = np.dot(U_all,w_star)
+		if w_noise != 0:
+			variance_n = np.var(d_all)
+			variance_s = variance_n*10**(-w_noise/10)
+			d_all += np.random.normal(loc= 0,scale = variance_s**(0.5),size = (m,1))
+		L2 = np.dot(w_star.T,w_star)[0][0]
+		graph_flag = True
+		while graph_flag:
+			graph = self.undirected_graph(m,r_i)
+			graph_flag = self.disjoint_checker(graph,m)
+		w_all = self.make_w(m,N,w_zero)
+		return w,w_star,w_all,U_all,d_all,L2,graph
+	
+	def show_graph(self,graph,r_i):
+		graph_edge = []
+		graph_node = []
+		print(len(graph))
+		for i in range(len(graph)):
+			graph_node.append(str(i+1))
+			j = copy.deepcopy(i) + 1
+			while j < len(graph):
+				if graph[i][j] == 1:
+					graph_edge.append((str(i+1),str(j+1)))
+				j += 1
+		G = nx.Graph()
+		G.add_nodes_from(graph_node)
+		G.add_edges_from(graph_edge)
+		pos = nx.spring_layout(G,k = 5,seed=1)
+		nx.draw_networkx_edges(G, pos, edge_color='y')
+		nx.draw_networkx_nodes(G, pos, node_color='r', alpha=0.5)
+		nx.draw_networkx_labels(G, pos, font_size=10)
+		plt.axis('off')
+
+	def make_variables_noise_after_3(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise,normal_distribution,w_zero):
+		if w_zero:
+			w = np.zeros((N,1))
+		else:
+			w = np.random.randn(N,1)
+		w_star = self.w_star_weakly_sparse(N,sparsity_percentage,how_weakly_sparse)
+		if normal_distribution:
+			U_all = np.random.randn(m,N)
+		else:
+			U_all = np.random.rand(m,N)
 		d_all = np.dot(U_all,w_star)
 		variance_n = np.var(d_all)
 		variance_s = variance_n*10**(-w_noise/10)
 		d_all += np.random.normal(loc= 0,scale = variance_s**(0.5),size = (m,1))
 		L2 = np.dot(w_star.T,w_star)[0][0]
-		graph = self.undirected_graph(m,r_i)
-		w_all = self.make_w(m,N)
+		graph = self.ring_graph(m,r_i)
+		w_all = self.make_w(m,N,w_zero)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 
 	def make_variables_no_noise(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise):
@@ -365,8 +502,7 @@ class base():
 
 	def one_gradient_descent(self,Ut,d,w,eta):
 		U = Ut.T
-		w = w - eta*((U*(np.dot(Ut,w)-d)))
-		return w
+		return ((U*(np.dot(Ut,w)-d)))
 
 	def all_gradient_descent(self,Ut,w_next,d,w_all,eta):
 		for i in range(len(Ut)):
@@ -409,13 +545,13 @@ class base():
 			w_next[i] = self.one_mc(Ut[i],d[i],w_all[i],lamb,eta,rho)
 		return w_next
 
-	def distributed_gradient_descent(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all):
+	def distributed_gradient_descent_1(self,Ut,d,w_star,L2,N,m,r_i,eta,iteration,c,w_all):
 		average_error = []
 		w_all_next = copy.deepcopy(w_all)
 		w_all_iter = copy.deepcopy(w_all)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_iter,w_star,N,L2,m))
-			w_all_next = self.all_gradient_descent(Ut,w_all_next,d,w_all_iter,eta)
+			w_all_next = c@w_all_next - eta*self.all_gradient_descent(Ut,w_all_next,d,w_all_iter,eta)
 			w_all_iter = (1/(r_i+1))*(c@w_all_next)
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = 'new distributed gradient descent')
