@@ -14,7 +14,7 @@ class distributed_updates(update_functions):
     def __init__(self):
 
         self.N = 10
-        self.m = 10
+        self.m = 20
         self.r_i = 3
         self.iteration = 2000
         self.sparsity_percentage = 0.3
@@ -103,11 +103,11 @@ class distributed_updates(update_functions):
                         one_train_w_star = train_w_star_list[train*self.N:(train+1)*self.N]
                         one_train_w_star = one_train_w_star.reshape(self.N,1)
                         one_train_d_all = train_d_all_list[train*self.N:(train+1)*self.N]
-                        one_train_d_all = one_train_d_all.reshape(self.N,1)
+                        one_train_d_all = one_train_d_all.reshape(self.m,1)
                         one_train_U_all = train_U_all_list[train*self.m*self.N:(train+1)*self.m*self.N]
                         one_train_U_all = one_train_U_all.reshape(self.m,self.N)
                         one_train_graph = train_graph_list[train*self.m*self.N:(train+1)*self.m*self.N]
-                        one_train_graph = one_train_graph.reshape(self.m,self.N)
+                        one_train_graph = one_train_graph.reshape(self.m,self.m)
                         L2 = np.linalg.norm(one_train_w_star)
                         
                         error_centralized_mc,wcmc = self.centralized_mc(one_train_U_all,one_train_d_all,w,one_train_w_star,L2,0.039,0.001,0.0013,self.iteration)
