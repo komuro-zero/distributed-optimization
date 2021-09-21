@@ -822,7 +822,7 @@ class update_functions(base):
 		lip = max(LA.eig(Ut.T@Ut)[0])
 		Ls = (1-rho)*lip+ rho
 		eta = 2*c_tilde_min/Ls
-		print(eta)
+		# print(eta)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
 			# average_convergence.append(LA.norm(w_all_before-w_all_next))
@@ -834,8 +834,8 @@ class update_functions(base):
 				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho,m))
 			w_all_before = copy.deepcopy(w_all_next)
 			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,eta,lamb)
-			if i % 100 == 0:
-				print(f"iteration: {i}")
+			# if i % 100 == 0:
+			# 	print(f"iteration: {i}")
 		times = range(len(average_error))
 		plt.plot(times,average_error,label = "PG-EXTRA with AMC penalty")
 		# plt.title("convergence over iteration")
@@ -1262,17 +1262,17 @@ class update_functions(base):
 		# c_tilde = (1/2)*(np.eye(len(c))+c)
 		I,c,c_2,c_tilde,eta = self.extra_setup(c,r_i,Ut,mu,1,rho,decay)
 		eta = self.pg_extra_step_size(Ut,c_tilde)
-		print("l1 eta",eta)
+		# print("l1 eta",eta)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
 			w_all_prox_before = copy.deepcopy(w_all_prox)
 			w_all_prox = self.extra_l1_share(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,eta,i)
 			w_all_before = copy.deepcopy(w_all_next)
 			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta)
-			if i %100 == 0:
-				print("iteration:",i)
+			# if i %100 == 0:
+			# 	print("iteration:",i)
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'PG-EXTRA with ' + r"$\ell_1$"+' penalty')
+		# plt.plot(times,average_error,label = 'PG-EXTRA with ' + r"$\ell_1$"+' penalty')
 		return average_error,np.mean(w_all_next,axis = 0)
 	
 	def pg_extra_mixing_matrix_l1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,mu,decay):
