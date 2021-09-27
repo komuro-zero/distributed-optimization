@@ -4,6 +4,7 @@ from numpy.random import *
 from modules.distributed_regression import update_functions
 from matplotlib.backends.backend_pdf import PdfPages
 import matplotlib
+import sys
 
 
 
@@ -15,7 +16,6 @@ class distributed_updates(update_functions):
 
         self.N = 10
 
-        self.m = 10
         self.r_i = 3
         self.sparsity_percentage = 0.3
         self.how_weakly_sparse = 0.000
@@ -23,12 +23,14 @@ class distributed_updates(update_functions):
         self.normal_distribution = True
         self.w_zero = True
 
-    def run(self):
+    def run(self,network_size):
+        self.m = int(network_size)
 
         # make settings
         setting_number = 100
         for i in range(setting_number):
             w,w_star,w_all,U_all,d_all,L2,graph = self.make_variables_noise_after_2(self.N,self.m,self.r_i,self.sparsity_percentage,self.how_weakly_sparse,self.w_noise,self.normal_distribution,self.w_zero)
+            
             if i == 0:
                 all_w_star = w_star
                 all_U_all = U_all
@@ -39,7 +41,6 @@ class distributed_updates(update_functions):
                 all_U_all = np.hstack((all_U_all,U_all))
                 all_d_all = np.hstack((all_d_all,d_all))
                 all_graph = np.hstack((all_graph,graph))
-
         np.savetxt(f"./samples/sample_wstar_{setting_number}_m={self.m}",all_w_star)
         np.savetxt(f"./samples/sample_U_all_{setting_number}_m={self.m}",all_U_all)
         np.savetxt(f"./samples/sample_d_all_{setting_number}_m={self.m}",all_d_all)
@@ -57,4 +58,5 @@ class distributed_updates(update_functions):
         
 if __name__ == "__main__":
     simulation = distributed_updates()
-    simulation.run()
+    arg = sys.argv
+    simulation.run(arg[-1])

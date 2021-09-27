@@ -43,10 +43,10 @@ class distributed_updates(update_functions):
         print(matplotlib.get_cachedir())
 
         
-        w_star_all =np.loadtxt(f"./samples/sample_wstar_100_m={self.N}")
-        U_all_all =np.loadtxt(f"./samples/sample_U_all_100_m={self.N}")
-        d_all_all =np.loadtxt(f"./samples/sample_d_all_100_m={self.N}")
-        graph_all =np.loadtxt(f"./samples/sample_graph_100_m={self.N}")
+        w_star_all =np.loadtxt(f"./samples/sample_wstar_100_m={self.m}")
+        U_all_all =np.loadtxt(f"./samples/sample_U_all_100_m={self.m}")
+        d_all_all =np.loadtxt(f"./samples/sample_d_all_100_m={self.m}")
+        graph_all =np.loadtxt(f"./samples/sample_graph_100_m={self.m}")
         
         data_number = 100
         train_number = 90
@@ -102,11 +102,11 @@ class distributed_updates(update_functions):
                     for train in range(train_number):
                         one_train_w_star = train_w_star_list[train*self.N:(train+1)*self.N]
                         one_train_w_star = one_train_w_star.reshape(self.N,1)
-                        one_train_d_all = train_d_all_list[train*self.N:(train+1)*self.N]
+                        one_train_d_all = train_d_all_list[train*self.m:(train+1)*self.m]
                         one_train_d_all = one_train_d_all.reshape(self.m,1)
                         one_train_U_all = train_U_all_list[train*self.m*self.N:(train+1)*self.m*self.N]
                         one_train_U_all = one_train_U_all.reshape(self.m,self.N)
-                        one_train_graph = train_graph_list[train*self.m*self.N:(train+1)*self.m*self.N]
+                        one_train_graph = train_graph_list[train*self.m*self.m:(train+1)*self.m*self.m]
                         one_train_graph = one_train_graph.reshape(self.m,self.m)
                         L2 = np.linalg.norm(one_train_w_star)
                         
