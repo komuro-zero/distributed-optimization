@@ -73,10 +73,10 @@ class distributed_updates(update_functions):
             train_d_all_2 = d_all_all[:,(i+1)*test_number:100]
             train_d_all_list = np.append(train_d_all_1 , train_d_all_2)
             test_d_all_list = d_all_all[:,i*(test_number):(i+1)*test_number]
-            train_U_all_1 = U_all_all[:,0:i*(test_number)]
-            train_U_all_2 = U_all_all[:,(i+1)*test_number:100]
+            train_U_all_1 = U_all_all[:,0:i*(test_number)*self.N]
+            train_U_all_2 = U_all_all[:,(i+1)*test_number*self.N:100*self.N]
             train_U_all_list = np.append(train_U_all_1 , train_U_all_2)
-            test_U_all_list = U_all_all[:,i*(test_number):(i+1)*test_number]
+            test_U_all_list = U_all_all[:,i*(test_number)*self.N:(i+1)*self.N*test_number]
             train_graph_1 = graph_all[:,0:i*(test_number)*self.m]
             train_graph_2 = graph_all[:,(i+1)*test_number*self.m:100*self.m]
             train_graph_list = np.append(train_graph_1 , train_graph_2)
