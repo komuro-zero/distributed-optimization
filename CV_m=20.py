@@ -55,6 +55,7 @@ class distributed_updates(update_functions):
         mc_test_error = []
         amc_test_error = []
         l1_test_error = []
+        
         # for i in range(10):
         #     testing_list = list_prox[i*(self.m):(i+1)*(self.m)]
         #     first_list = list_prox[0:i*(self.m)]
@@ -72,14 +73,16 @@ class distributed_updates(update_functions):
             train_d_all_2 = d_all_all[:,(i+1)*test_number:100]
             train_d_all_list = np.append(train_d_all_1 , train_d_all_2)
             test_d_all_list = d_all_all[:,i*(test_number):(i+1)*test_number]
-            train_U_all_1 = U_all_all[:,0:i*(test_number)*self.m]
-            train_U_all_2 = U_all_all[:,(i+1)*test_number*self.m:100*self.m]
+            train_U_all_1 = U_all_all[:,0:i*(test_number)]
+            train_U_all_2 = U_all_all[:,(i+1)*test_number:100]
             train_U_all_list = np.append(train_U_all_1 , train_U_all_2)
-            test_U_all_list = U_all_all[:,i*(test_number)*self.m:(i+1)*test_number*self.m]
+            test_U_all_list = U_all_all[:,i*(test_number):(i+1)*test_number]
             train_graph_1 = graph_all[:,0:i*(test_number)*self.m]
             train_graph_2 = graph_all[:,(i+1)*test_number*self.m:100*self.m]
             train_graph_list = np.append(train_graph_1 , train_graph_2)
             test_graph_list = graph_all[:,i*(test_number)*self.m:(i+1)*test_number*self.m]
+            print(train_graph_list.shape)
+            print(test_graph_list.shape)
             mc_error_best = 0
             amc_error_best = 0
             l1_error_best = 0
