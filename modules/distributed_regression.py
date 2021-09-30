@@ -874,7 +874,7 @@ class update_functions(base):
 			# if i % 100 == 0:
 			# 	print(f"iteration: {i}")
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = "PG-EXTRA with Partial MC penalty")
+		# plt.plot(times,average_error,label = "PG-EXTRA with Partial MC penalty")
 		# plt.title("convergence over iteration")
 		# plt.show()
 		return average_error,np.mean(w_all_before,axis = 0)
