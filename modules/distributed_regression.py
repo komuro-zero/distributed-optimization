@@ -71,7 +71,7 @@ class update_functions(base):
 		one_error =0
 		U = Ut.T
 		u_eig ,u_vec = np.linalg.eig(U@Ut)
-		eta = (2/max(u_eig)).real
+		eta = (1/max(u_eig)).real
 		if flag:
 			for i in range(iteration):
 				w = w - eta*(np.dot(U,(np.dot(Ut,w)-d)))
@@ -858,7 +858,7 @@ class update_functions(base):
 		c_tilde_min = min(LA.eig(c_tilde)[0])
 		lip = max(LA.eig(Ut.T@Ut)[0])
 		Ls = (1-rho)*lip+ rho
-		eta = 2*c_tilde_min/Ls
+		eta = 0.5*c_tilde_min/Ls
 		# print(eta)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
@@ -871,10 +871,10 @@ class update_functions(base):
 				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_partial(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_partial(Ut,w_all_before,d,lamb,eta,rho,m))
 			w_all_before = copy.deepcopy(w_all_next)
 			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,eta,lamb)
-			# if i % 100 == 0:
-			# 	print(f"iteration: {i}")
+			print(f"iteration: {i}")
+			print(w_all_before[0])
 		times = range(len(average_error))
-		# plt.plot(times,average_error,label = "PG-EXTRA with Partial MC penalty")
+		plt.plot(times,average_error,label = "PG-EXTRA with Projected MC penalty")
 		# plt.title("convergence over iteration")
 		# plt.show()
 		return average_error,np.mean(w_all_before,axis = 0)
@@ -1913,10 +1913,13 @@ class update_functions(base):
 		for i in range(len(Ut)):
 			ui = np.reshape(Ut[i],(len(Ut[i]),1))
 			uti = ui.T
+			ui_norm = ui/np.linalg.norm(ui)
+			uti_norm = ui_norm.T
 			wi = np.reshape(w[i],(len(w[i]),1))
-			P = (ui@uti)/((uti@ui)[0][0])
+			P = ui_norm@uti_norm
+			# P = (ui@uti)/((uti@ui)[0][0])
 			# gradient[i] = (ui@(uti@wi-d[i])-(rho)*wi+rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
-			gradient[i] = (ui@(uti@wi-d[i])-(rho)*P@wi+rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],P@w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
+			gradient[i] = (ui@(uti@wi-d[i])-(rho)*P@wi + rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],P@w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
 		return gradient
 	
 	def gradient_mc(self,Ut,w_now,d,lamb,eta,rho,m):

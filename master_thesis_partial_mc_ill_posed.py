@@ -17,7 +17,7 @@ class distributed_updates(update_functions):
         self.N = 10
         self.m = 5
         self.r_i = 2
-        self.iteration = 20000
+        self.iteration = 1000
         self.sparsity_percentage = 0.2
         self.lamb = 0.31    
         self.eta = 0.0045
@@ -95,20 +95,21 @@ class distributed_updates(update_functions):
         # self.pg_extra_mc_consensus_violation(U_all,d_all,wcmc,L2,self.N,self.m,self.r_i,0.9/self.m,2,44/self.m,2500,graph,w_all,1,0.12)
         # self.pg_extra_mc_consensus_violation(U_all,d_all,wcmc,L2,self.N,self.m,self.r_i,0.9/self.m,2,44/self.m,2500,graph,w_all,10,0.08)
         
-        # self.pg_extra_partial_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.21/self.m,0.027,1/self.m,self.iteration,graph,w_all,0.05)
+        self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.018/self.m,0.027,0.09,self.iteration,graph,w_all,0,0.75)
+        
+        self.pg_extra_partial_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.31/self.m,0.027,48/self.m,self.iteration,graph,w_all,0.05)
         # self.prox_dgd(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.66/self.m,0.01,44/self.m,self.iteration,graph,w_all)
         # self.pg_extra_approximate_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.45/self.m,0.027,1.2/self.m,self.iteration,graph,w_all,0.05)
         # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.66/self.m,1,44/self.m,self.iteration,graph,w_all,0,0.1)
         # self.pg_extra_mc_consensus_violation(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.66/self.m,1,44/self.m,self.iteration,graph,w_all,10,0.03)
-        # self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,0.018/self.m,0.027,0.09,self.iteration,graph,w_all,0,0.75)
         
         # print(U_all.T@U_all)
         # thresh = 0
-        # for i in range(50):
-        #     for j in range(50):
-        #         lamb = 0.01 + 0.1*i
+        # for i in range(100):
+        #     for j in range(100):
+        #         lamb = 0.01 + 0.01*i
         #         rho =  0.01 + 0.01*j
-        #         error,w = self.pg_extra_approximate_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,lamb/self.m,0.027,rho/self.m,self.iteration,graph,w_all)
+        #         error,w_mc = self.centralized_mc(U_all,d_all,w,w_star,L2,lamb,0.027,rho,self.iteration)
         #         if error != None:
         #             if error[-1] < thresh:
         #                 thresh = error[-1]
@@ -120,7 +121,7 @@ class distributed_updates(update_functions):
         
         # thresh = 0
         # for i in range(100):
-        #     lamb = 0.001 + 0.001*i
+        #     lamb = 0.01 + 0.01*i
         #     # error,w = self.pg_extra_l1(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,lamb/self.m,0.027,1,self.iteration,graph,w_all,0,1)
         #     error,w = self.centralized_L1(U_all,d_all,w,w_star,L2,lamb,0.027,self.iteration)
         #     if error != None:
@@ -151,8 +152,8 @@ class distributed_updates(update_functions):
         thresh = 0
         for i in range(100):
             for j in range(100):
-                lamb = 0.001 + 0.001*i
-                rho =  0.001 + 0.001*j
+                lamb = 0.1 + 0.1*i
+                rho =  0.1+ 0.1*j
                 error,w = self.pg_extra_partial_mc(U_all,d_all,w_star,L2,self.N,self.m,self.r_i,lamb/self.m,0.027,rho/self.m,self.iteration,graph,w_all,1)
                 if error != None:
                     if error[-1] < thresh:
@@ -160,7 +161,7 @@ class distributed_updates(update_functions):
                         optimal_lamb = lamb
                         optimal_rho = rho
                 print(i,j)
-        print(optimal_lamb,optimal_rho)
+        print(thresh,optimal_lamb,optimal_rho)
 
         # thresh = 0
         # for i in range(50):
@@ -377,8 +378,8 @@ class distributed_updates(update_functions):
         # # plt.plot(x,wcl1,label = "L1")
         # # plt.plot(x,wcmc,label = "mc")
         # plt.plot(x,w_star,color = "black")
-        # plt.legend()
-        # plt.show()
+        plt.legend()
+        plt.show()
 
 if __name__ == "__main__":
     simulation = distributed_updates()
