@@ -1,4 +1,6 @@
 import numpy as np
+from numpy.lib.function_base import average
+from numpy.linalg.linalg import norm
 from numpy.random import *
 import matplotlib.pyplot as plt
 import copy
@@ -46,7 +48,7 @@ class update_functions(base):
 		one_error =0
 		U = Ut.T
 		u_eig ,u_vec = np.linalg.eig(U@Ut)
-		eta = (2/max(u_eig)).real
+		eta = (1/max(u_eig)).real
 		for i in range(iteration):
 			w = w - eta*(np.dot(U,(np.dot(Ut,w)-d)))
 			for j in range(len(w)):
@@ -64,7 +66,8 @@ class update_functions(base):
 	
 	def centralized_mc(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration):
 		B = (rho/lamb)**0.5
-		flag = self.centralized_convexity_checker(B,lamb,Ut,len(w))
+		flag = True
+		# flag = self.centralized_convexity_checker(B,lamb,Ut,len(w))
 		w = np.zeros_like(w)
 		error = [self.db(np.dot((w-w_star).T,w-w_star)[0],L2)] 
 		times = [0]
@@ -95,7 +98,7 @@ class update_functions(base):
 		else:
 			return [0],None
 
-	def centralized_partial_mc(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration,m):
+	def centralized_partial_mc(self,Ut,d,w,w_star,L2,lamb,eta_input,rho,iteration,m):
 		B = (rho/lamb)**0.5
 		self.centralized_convexity_checker(B,lamb,Ut,len(w))
 		w = np.zeros_like(w)
@@ -103,45 +106,44 @@ class update_functions(base):
 		times = [0]
 		one_error =0
 		prox = np.zeros_like(w)
+		Ut_norm = Ut/np.linalg.norm(Ut)
+		U_norm = Ut_norm.T
+		# diagonal = np.diag(U@Ut)
+		proj = U_norm@Ut_norm
 		U = Ut.T
-		diagonal = np.diag(U@Ut)
-		proj = U@(np.linalg.inv(Ut@U))@Ut
 		# proj = U@Ut
 		# proj = np.eye(len(w_star))
+		
 		u_eig ,u_vec = np.linalg.eig(U@Ut)
 		sorted_eig = sorted(list(u_eig))
-		eta = (2/max(u_eig)).real
+		eta = (eta_input/max(u_eig)).real
 		if m < len(w_star):
 			rho_bound = sorted_eig[-m].real
 		else:
 			rho_bound = min(sorted_eig)
-		print(rho_bound)
-		if rho <=  rho_bound:
-			for i in range(iteration):
-				p_w = proj@w
-				prox = copy.deepcopy(p_w)
-				for j in range(len(prox)):
-					if prox[j] > 0 and lamb/rho< abs(prox[j]):
-						prox[j] -= lamb/rho
-					elif prox[j] < 0 and lamb/rho < abs(prox[j]):
-						prox[j] += lamb/rho
-					else:
-						prox[j] = 0
-				w = w - eta*(U@(Ut@w-d)-rho*p_w+rho*prox)
-				for j in range(len(w)):
-					if w[j] > 0 and eta*lamb < abs(w[j]):
-						w[j] -= eta*lamb
-					elif w[j] < 0 and eta*lamb < abs(w[j]):
-						w[j] += eta*lamb
-					else:
-						w[j] = 0
-				one_error = np.dot((w-w_star).T,w-w_star)[0][0]
-				error.append(self.db(one_error,L2))
-				times.append(i+1)
-			plt.plot(times,error,label = 'Centralized Optimization with partial mc')
-			return error,w
-		else:
-			return None
+		for i in range(iteration):
+			p_w = proj@w
+			prox = copy.deepcopy(p_w)
+			for j in range(len(prox)):
+				if prox[j] > 0 and lamb/rho< abs(prox[j]):
+					prox[j] -= lamb/rho
+				elif prox[j] < 0 and lamb/rho < abs(prox[j]):
+					prox[j] += lamb/rho
+				else:
+					prox[j] = 0
+			w = w - eta*(U@(Ut@w-d)-rho*p_w+rho*prox)
+			for j in range(len(w)):
+				if w[j] > 0 and eta*lamb < abs(w[j]):
+					w[j] -= eta*lamb
+				elif w[j] < 0 and eta*lamb < abs(w[j]):
+					w[j] += eta*lamb
+				else:
+					w[j] = 0
+			one_error = np.dot((w-w_star).T,w-w_star)[0][0]
+			error.append(self.db(one_error,L2))
+			times.append(i+1)
+		plt.plot(times,error,label = 'Centralized Optimization with partial mc')
+		return error,w
 
 	def centralized_scad(self,Ut,d,w,w_star,L2,lamb,eta,rho,iteration):
 		B = (rho/lamb)**0.5
@@ -552,6 +554,33 @@ class update_functions(base):
 		# plt.plot(times,consensus_error,label = 'Consensus: DPD with MC-CPP ('+r"$r = $"+ f"{r_i}, "+r"$\kappa = $"+ f"{mu}"+r"$, \zeta = $"+f"{decay})")
 		# plt.plot(times,neighbor_consensus_error,label = 'Neighbor Consensus: D-TwiG with '+r"$\mu = $"+ f"{mu}"+f", m_param = "+f"{decay}")
 		return np.mean(w_all_next,axis = 0)
+	
+	def pg_extra_mc_consensus_violation_animation(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta_multitude,rho,iteration,c,w_all,mu,decay):
+		average_error = []
+		w_all_next_list =[]
+		consensus_error = []
+		neighbor_consensus_error = []
+
+		w_all = np.zeros_like(w_all)
+		w_all_next = copy.deepcopy(w_all)
+		w_all_before = copy.deepcopy(w_all)
+		w_all_prox = copy.deepcopy(w_all)
+		I,c_1,c_2,c_tilde,eta = self.extra_setup(c,r_i,Ut,mu,eta_multitude,rho,decay)
+		print(eta)
+		for i in range(iteration):
+			w_all_next_average = np.reshape(np.mean(w_all_next,axis = 0),(len(w_star),1))
+			L2_consensus = np.linalg.norm(w_all_next_average, ord=2)
+			consensus_error.append(self.error_distributed(w_all_next,w_all_next_average,N,L2_consensus,m))
+			neighbor_consensus_error.append(self.error_consensus(w_all_next,N,L2_consensus,m,c_2))
+			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+			w_all_prox_before = copy.deepcopy(w_all_prox)
+			w_all_prox = self.extra_l1_consensus_violation_share(Ut,d,c_1,c_tilde,w_all_next,w_all_before,w_all_prox_before,eta,i,I,rho,m,c_2,mu)
+			w_all_before = copy.deepcopy(w_all_next)
+			w_all_next = self.all_extra_mc(Ut,d,w_all_prox,lamb,eta,rho)
+			w_all_next_list.append(w_all_next[:,0:3])
+		# times = range(len(average_error))
+		# plt.plot(times,average_error,label = 'CPP param ('+r"$\mu = $"+ f"{mu})")
+		return np.mean(w_all_next,axis = 0),w_all_next_list
 
 	def pg_extra_mc_consensus_violation_fixed_tau_eta(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta_multitude,rho,iteration,c,w_all,mu,decay,eigenvalue):
 		average_error = []
@@ -842,7 +871,71 @@ class update_functions(base):
 		# plt.show()
 		return average_error,np.mean(w_all_before,axis = 0)
 	
-	def pg_extra_partial_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,decay):
+	def pg_extra_partial_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta_input,rho,iteration,c,w_all,decay,graph=True,animation=False):
+		average_error = []
+		# average_variance = []
+		# average_convergence = []
+		w_all = copy.deepcopy(w_all)
+		w_all_next = copy.deepcopy(w_all)
+		w_all_before = copy.deepcopy(w_all)
+		w_all_prox = copy.deepcopy(w_all)
+		w_all_prox_before = copy.deepcopy(w_all_prox)
+		
+		pre_c = decay*(1/((r_i+1)))*(c-np.eye(len(c)))
+		c = pre_c + np.eye(len(c))*(1-r_i*decay/((r_i+1)))
+		c_tilde = (1/2)*(np.eye(len(c))+c)
+		c_tilde_min = min(LA.eig(c_tilde)[0])
+		largest_rho = 1 - lamb
+		if self.partial_convexity_checker(largest_rho,Ut):
+			eta = self.partial_eta_calculator(Ut,eta_input,c_tilde_min,lamb,largest_rho)
+			w_all_next_list = []
+			for i in range(iteration):
+				average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+				# average_convergence.append(LA.norm(w_all_before-w_all_next))
+				# average_variance.append(np.var(w_all_before,axis = 1))
+				w_all_prox_before = copy.deepcopy(w_all_prox)
+				if i == 0:
+					w_all_prox = c@w_all_before-eta*(self.gradient_partial(Ut,w_all_before,d,lamb,eta,largest_rho,m))
+				else:
+					w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_partial(Ut,w_all_next,d,lamb,eta,largest_rho,m)-self.gradient_partial(Ut,w_all_before,d,lamb,eta,largest_rho,m))
+				w_all_before = copy.deepcopy(w_all_next)
+				w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta)
+				bar = '='*int(100*i/iteration) + ("=" if i == 100 else ">")  + "."*(100-int(100*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
+				print(f"\r\033[K[{bar}] {(i+1)/iteration*100:.02f}% ({i+1}/{iteration})", end="")
+				w_all_next_list.append(w_all_next[:,1:4])
+				
+				# print(w_all_before[0])
+			if graph:
+				times = range(len(average_error))
+				plt.plot(times,average_error,label = "PG-EXTRA with Projective MC penalty")
+			# plt.title("convergence over iteration")
+			# plt.show()
+			if animation:
+				return average_error,w_all_next_list
+			else:
+				return average_error,np.mean(w_all_before,axis = 0)
+		else:
+			return None,None
+
+	def partial_convexity_checker(self,rho,Ut):
+		norm_list = []
+		for ui in Ut:
+			norm_list.append((np.linalg.norm(ui))**4)
+		if rho > min(norm_list) or rho > 1:
+			print(f"your formulation is not convex. must be smaller than {min(norm_list)} or 1. currently {rho}")
+			return False
+		else:
+			return True
+			
+
+
+	def partial_eta_calculator(self,Ut,eta_input,c_tilde_min,lamb,rho):
+		L = (1+lamb+rho)
+		if L < 0:
+			print(f"lamb + rho must be smaller than 1. currently {lamb + rho}")
+		return eta_input*c_tilde_min/L
+
+	def pg_extra_partial_mc_norm(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta_input,rho,iteration,c,w_all,decay,graph=True,animation=False):
 		average_error = []
 		# average_variance = []
 		# average_convergence = []
@@ -858,7 +951,51 @@ class update_functions(base):
 		c_tilde_min = min(LA.eig(c_tilde)[0])
 		lip = max(LA.eig(Ut.T@Ut)[0])
 		Ls = (1-rho)*lip+ rho
-		eta = 0.5*c_tilde_min/Ls
+		eta = eta_input*c_tilde_min/Ls
+		w_all_next_list = []
+		for i in range(iteration):
+			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+			# average_convergence.append(LA.norm(w_all_before-w_all_next))
+			# average_variance.append(np.var(w_all_before,axis = 1))
+			w_all_prox_before = copy.deepcopy(w_all_prox)
+			if i == 0:
+				w_all_prox = c@w_all_before-eta_input*(self.gradient_partial_norm(Ut,w_all_before,d,lamb,eta,rho,m))
+			else:
+				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta_input*(self.gradient_partial_norm(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_partial_norm(Ut,w_all_before,d,lamb,eta,rho,m))
+			w_all_before = copy.deepcopy(w_all_next)
+			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta_input)
+			
+			w_all_next_list.append(w_all_next[:,1:4])
+			
+			# print(w_all_before[0])
+		if graph:
+			times = range(len(average_error))
+			plt.plot(times,average_error,label = "PG-EXTRA with Projective MC penalty")
+		# plt.title("convergence over iteration")
+		# plt.show()
+		if animation:
+			return average_error,w_all_next_list
+		else:
+			return average_error,np.mean(w_all_before,axis = 0)
+	
+	def pg_extra_partial_mc_each_param(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta_input,rho,iteration,c,w_all,decay,graph=True,animation=False):
+		average_error = []
+		# average_variance = []
+		# average_convergence = []
+		w_all = copy.deepcopy(w_all)
+		w_all_next = copy.deepcopy(w_all)
+		w_all_before = copy.deepcopy(w_all)
+		w_all_prox = copy.deepcopy(w_all)
+		w_all_prox_before = copy.deepcopy(w_all_prox)
+		
+		pre_c = decay*(1/((r_i+1)))*(c-np.eye(len(c)))
+		c = pre_c + np.eye(len(c))*(1-r_i*decay/((r_i+1)))
+		c_tilde = (1/2)*(np.eye(len(c))+c)
+		c_tilde_min = min(LA.eig(c_tilde)[0])
+		lip = max(LA.eig(Ut.T@Ut)[0])
+		Ls = (1-rho)*lip+ rho
+		eta = (min(eta_input*c_tilde_min/Ls)).real
+		w_all_next_list = []
 		# print(eta)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
@@ -866,18 +1003,76 @@ class update_functions(base):
 			# average_variance.append(np.var(w_all_before,axis = 1))
 			w_all_prox_before = copy.deepcopy(w_all_prox)
 			if i == 0:
-				w_all_prox = c@w_all_before-eta*(self.gradient_partial(Ut,w_all_before,d,lamb,eta,rho,m))
+				# print("eta",eta)
+				# print(c@w_all_before)
+				# print(self.gradient_partial_each_param(Ut,w_all_before,d,lamb,eta,rho,m))
+				w_all_prox = c@w_all_before-eta*(self.gradient_partial_each_param(Ut,w_all_before,d,lamb,eta,rho,m))
 			else:
-				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_partial(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_partial(Ut,w_all_before,d,lamb,eta,rho,m))
+				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_partial_each_param(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_partial_each_param(Ut,w_all_before,d,lamb,eta,rho,m))
 			w_all_before = copy.deepcopy(w_all_next)
-			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,eta,lamb)
-			print(f"iteration: {i}")
-			print(w_all_before[0])
-		times = range(len(average_error))
-		plt.plot(times,average_error,label = "PG-EXTRA with Projected MC penalty")
+			w_all_next = self.all_extra_L1_each_param(Ut,d,w_all_prox,lamb,eta)
+			if i % 1000 == 0:
+				print(f"iteration: {i}")
+			w_all_next_list.append(w_all_next[:,1:4])
+			
+			# print(w_all_before[0])
+		if graph:
+			times = range(len(average_error))
+			plt.plot(times,average_error,label = "PG-EXTRA with Projective MC penalty (Individual Parameter)")
 		# plt.title("convergence over iteration")
 		# plt.show()
-		return average_error,np.mean(w_all_before,axis = 0)
+		if animation:
+			return average_error,w_all_next_list
+		else:
+			return average_error,np.mean(w_all_before,axis = 0)
+	
+	def pg_extra_partial_mc_each_param_norm(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta_input,rho,iteration,c,w_all,decay,graph=True,animation=False):
+		average_error = []
+		# average_variance = []
+		# average_convergence = []
+		w_all = copy.deepcopy(w_all)
+		w_all_next = copy.deepcopy(w_all)
+		w_all_before = copy.deepcopy(w_all)
+		w_all_prox = copy.deepcopy(w_all)
+		w_all_prox_before = copy.deepcopy(w_all_prox)
+		
+		pre_c = decay*(1/((r_i+1)))*(c-np.eye(len(c)))
+		c = pre_c + np.eye(len(c))*(1-r_i*decay/((r_i+1)))
+		c_tilde = (1/2)*(np.eye(len(c))+c)
+		c_tilde_min = min(LA.eig(c_tilde)[0])
+		lip = max(LA.eig(Ut.T@Ut)[0])
+		Ls = (1-rho)*lip+ rho
+		eta = min(eta_input*c_tilde_min/Ls)
+		w_all_next_list = []
+		# print(eta)
+		for i in range(iteration):
+			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+			# average_convergence.append(LA.norm(w_all_before-w_all_next))
+			# average_variance.append(np.var(w_all_before,axis = 1))
+			w_all_prox_before = copy.deepcopy(w_all_prox)
+			if i == 0:
+				# print("eta",eta)
+				# print(c@w_all_before)
+				# print(self.gradient_partial_each_param(Ut,w_all_before,d,lamb,eta,rho,m))
+				w_all_prox = c@w_all_before-eta*(self.gradient_partial_norm_each_param(Ut,w_all_before,d,lamb,eta,rho,m))
+			else:
+				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_partial_norm_each_param(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_partial_norm_each_param(Ut,w_all_before,d,lamb,eta,rho,m))
+			w_all_before = copy.deepcopy(w_all_next)
+			w_all_next = self.all_extra_L1_each_param(Ut,d,w_all_prox,lamb,eta)
+			if i % 1000 == 0:
+				print(f"iteration: {i}")
+			w_all_next_list.append(w_all_next[:,1:4])
+			
+			# print(w_all_before[0])
+		if graph:
+			times = range(len(average_error))
+			plt.plot(times,average_error,label = "PG-EXTRA with Projective MC penalty (Individual Parameter)")
+		# plt.title("convergence over iteration")
+		# plt.show()
+		if animation:
+			return average_error,w_all_next_list
+		else:
+			return average_error,np.mean(w_all_before,axis = 0)
 	
 	def pg_extra_mc_nonconvex_twin(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
@@ -1193,6 +1388,12 @@ class update_functions(base):
 			return c@w_all_next - eta*(self.gradient(Ut,w_all_next,d))
 		else:
 			return c@w_all_next + w_all_prox - c_tilde@w_all_before - eta*(self.gradient(Ut,w_all_next,d)-self.gradient(Ut,w_all_before,d))
+	
+	def extra_l1_share_norm(self,Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox,eta,i):
+		if i == 0:
+			return c@w_all_next - eta*(self.gradient_norm(Ut,w_all_next,d))
+		else:
+			return c@w_all_next + w_all_prox - c_tilde@w_all_before - eta*(self.gradient_norm(Ut,w_all_next,d)-self.gradient_norm(Ut,w_all_before,d))
 
 	def extra_l1_share_step_size(self,Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox,eta_mat,i):
 		if i == 0:
@@ -1245,7 +1446,7 @@ class update_functions(base):
 		else:
 			return ((c@w_all_next).T + w_all_next.T - (c_tilde@w_all_before).T - eta*(U@(Ut@w_all_next.T-d)-U@(Ut@w_all_before.T-d))).T
 
-	def pg_extra_l1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,mu,decay):
+	def pg_extra_l1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,mu,decay,graph=True,animation=False):
 		average_error = []
 		w_all = copy.deepcopy(w_all)
 		w_all_next = copy.deepcopy(w_all)
@@ -1255,6 +1456,7 @@ class update_functions(base):
 		# c_tilde = (1/2)*(np.eye(len(c))+c)
 		I,c,c_2,c_tilde,eta = self.extra_setup(c,r_i,Ut,mu,1,rho,decay)
 		eta = self.pg_extra_step_size(Ut,c_tilde)
+		w_all_next_list = []
 		# print("l1 eta",eta)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
@@ -1262,11 +1464,76 @@ class update_functions(base):
 			w_all_prox = self.extra_l1_share(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,eta,i)
 			w_all_before = copy.deepcopy(w_all_next)
 			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta)
-			# if i %100 == 0:
-			# 	print("iteration:",i)
-		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'PG-EXTRA with ' + r"$\ell_1$"+' penalty')
-		return average_error,np.mean(w_all_next,axis = 0)
+			bar = '='*int(100*i/iteration) + ("=" if i == 100 else ">")  + "."*(100-int(100*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
+			print(f"\r\033[K[{bar}] {(i+1)/iteration*100:.02f}% ({i+1}/{iteration})", end="")
+			w_all_next_list.append(w_all_next[:,1:4])			
+		if graph:
+			times = range(len(average_error))
+			plt.plot(times,average_error,label = 'PG-EXTRA with ' + r"$\ell_1$"+' penalty')
+		if animation:
+			return average_error,w_all_next_list
+		else:
+			return average_error,np.mean(w_all_next,axis = 0)
+	
+	def pg_extra_l1_each_param(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,mu,decay,graph=True,animation=False):
+		average_error = []
+		w_all = copy.deepcopy(w_all)
+		w_all_next = copy.deepcopy(w_all)
+		w_all_before = copy.deepcopy(w_all)
+		w_all_prox = copy.deepcopy(w_all)
+		# c = (1/(r_i+1))*c
+		# c_tilde = (1/2)*(np.eye(len(c))+c)
+		I,c,c_2,c_tilde,eta = self.extra_setup(c,r_i,Ut,mu,1,rho,decay)
+		eta = self.pg_extra_step_size(Ut,c_tilde)
+		w_all_next_list = []
+		print("l1 eta",eta)
+		for i in range(iteration):
+			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+			w_all_prox_before = copy.deepcopy(w_all_prox)
+			w_all_prox = self.extra_l1_share(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,eta,i)
+			w_all_before = copy.deepcopy(w_all_next)
+			w_all_next = self.all_extra_L1_each_param(Ut,d,w_all_prox,lamb,eta)
+			if i %300 == 0:
+				print("iteration:",i)
+			w_all_next_list.append(w_all_next[:,1:4])
+			
+		if graph:
+			times = range(len(average_error))
+			plt.plot(times,average_error,label = 'PG-EXTRA with ' + r"$\ell_1$"+' penalty Individual Parameter')
+		if animation:
+			return average_error,w_all_next_list
+		else:
+			return average_error,np.mean(w_all_next,axis = 0)
+	
+	def pg_extra_l1_norm(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,mu,decay,graph=True,animation=False):
+		average_error = []
+		w_all = copy.deepcopy(w_all)
+		w_all_next = copy.deepcopy(w_all)
+		w_all_before = copy.deepcopy(w_all)
+		w_all_prox = copy.deepcopy(w_all)
+		# c = (1/(r_i+1))*c
+		# c_tilde = (1/2)*(np.eye(len(c))+c)
+		I,c,c_2,c_tilde,eta = self.extra_setup(c,r_i,Ut,mu,1,rho,decay)
+		eta = self.pg_extra_step_size(Ut,c_tilde)
+		w_all_next_list = []
+		print("l1 eta",eta)
+		for i in range(iteration):
+			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+			w_all_prox_before = copy.deepcopy(w_all_prox)
+			w_all_prox = self.extra_l1_share_norm(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,eta,i)
+			w_all_before = copy.deepcopy(w_all_next)
+			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta)
+			if i %300 == 0:
+				print("iteration:",i)
+			w_all_next_list.append(w_all_next[:,1:4])
+			
+		if graph:
+			times = range(len(average_error))
+			plt.plot(times,average_error,label = 'PG-EXTRA with ' + r"$\ell_1$"+' penalty')
+		if animation:
+			return average_error,w_all_next_list
+		else:
+			return average_error,np.mean(w_all_next,axis = 0)
 	
 	def pg_extra_mixing_matrix_l1(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,mu,decay):
 		average_error = []
@@ -1872,6 +2139,13 @@ class update_functions(base):
 		for i in range(len(Ut)):
 			gradient[i] = self.one_gradient(Ut[i],d[i],w[i])
 		return gradient
+
+	def gradient_norm(self,Ut,w_now,d):
+		gradient_now = self.gradient(Ut,w_now,d)
+		gradient_norm = np.zeros(gradient_now.shape)
+		for i in range(len(gradient_norm)):
+			gradient_norm[i] = gradient_now[i]/np.linalg.norm(gradient_now[i])
+		return gradient_norm
 	
 	def negative_gradient(self,Ut,w_now,d):
 		w = copy.deepcopy(w_now)
@@ -1913,7 +2187,7 @@ class update_functions(base):
 		for i in range(len(Ut)):
 			ui = np.reshape(Ut[i],(len(Ut[i]),1))
 			uti = ui.T
-			ui_norm = ui/np.linalg.norm(ui)
+			ui_norm = ui/(np.linalg.norm(ui))
 			uti_norm = ui_norm.T
 			wi = np.reshape(w[i],(len(w[i]),1))
 			P = ui_norm@uti_norm
@@ -1921,6 +2195,36 @@ class update_functions(base):
 			# gradient[i] = (ui@(uti@wi-d[i])-(rho)*wi+rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
 			gradient[i] = (ui@(uti@wi-d[i])-(rho)*P@wi + rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],P@w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
 		return gradient
+	
+	def gradient_partial_norm(self,Ut,w_now,d,lamb,eta,rho,m):
+		gradient = self.gradient_partial(Ut,w_now,d,lamb,eta,rho,m)
+		gradient_norm = copy.deepcopy(w_now)
+		for i in range(len(gradient)):
+			gradient_norm[i] = gradient[i]/np.linalg.norm(gradient[i])
+		return gradient_norm
+	
+	def gradient_partial_each_param(self,Ut,w_now,d,lamb,eta,rho,m):
+		w = copy.deepcopy(w_now)
+		w_soft = copy.deepcopy(w_now)
+		gradient = copy.deepcopy(w)
+		for i in range(len(Ut)):
+			ui = np.reshape(Ut[i],(len(Ut[i]),1))
+			uti = ui.T
+			ui_norm = ui/np.linalg.norm(ui)
+			uti_norm = ui_norm.T
+			wi = np.reshape(w[i],(len(w[i]),1))
+			P = ui_norm@uti_norm
+			# P = (ui@uti)/((uti@ui)[0][0])
+			# gradient[i] = (ui@(uti@wi-d[i])-(rho)*wi+rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
+			gradient[i] = (ui@(uti@wi-d[i])-(rho[i])*P@wi + rho[i]*(np.reshape(self.one_extra_L1(Ut[i],d[i],P@w_soft[i],lamb[i],1/rho[i]),(len(wi),1)))).T[0]
+		return gradient
+	
+	def gradient_partial_norm_each_param(self,Ut,w_now,d,lamb,eta,rho,m):
+		gradient = self.gradient_partial_each_param(Ut,w_now,d,lamb,eta,rho,m)
+		gradient_norm = copy.deepcopy(w_now)
+		for i in range(len(gradient)):
+			gradient_norm[i] = gradient[i]/np.linalg.norm(gradient[i])
+		return gradient_norm
 	
 	def gradient_mc(self,Ut,w_now,d,lamb,eta,rho,m):
 		w = copy.deepcopy(w_now)
@@ -1995,6 +2299,20 @@ class update_functions(base):
 		w_next = copy.deepcopy(w_all_now)
 		for i in range(len(Ut)):
 			w_next[i] = self.one_extra_L1(Ut[i],d[i],w_all[i],lamb,eta)
+		return w_next
+	
+	def all_extra_L1_each_param(self,Ut,d,w_all_now,lamb,eta):
+		w_all = copy.deepcopy(w_all_now)
+		w_next = copy.deepcopy(w_all_now)
+		for i in range(len(Ut)):
+			w_next[i] = self.one_extra_L1(Ut[i],d[i],w_all[i],lamb[i],eta)
+		return w_next
+	
+	def all_extra_L1_each_param(self,Ut,d,w_all_now,lamb,eta):
+		w_all = copy.deepcopy(w_all_now)
+		w_next = copy.deepcopy(w_all_now)
+		for i in range(len(Ut)):
+			w_next[i] = self.one_extra_L1(Ut[i],d[i],w_all[i],lamb[i],eta)
 		return w_next
 
 	def all_extra_step_size_L1(self,Ut,d,w_all_now,lamb,eta_mat):

@@ -45,9 +45,10 @@ class base():
 		for i in range(len(w_star)):
 			if w_star[i] == 0:
 				w_star_prox[i] = np.random.randn()
-		w_star_prox = w_star_prox/np.linalg.norm(w_star_prox)
-		w_star = w_star/np.linalg.norm(w_star)
-		w_star += how_weak*w_star_prox
+		if np.linalg.norm(w_star_prox) > 0:
+			w_star_prox = w_star_prox/np.linalg.norm(w_star_prox)
+			w_star = w_star/np.linalg.norm(w_star)
+			w_star += how_weak*w_star_prox
 		w_star = w_star/np.linalg.norm(w_star)		
 		return w_star
 	
@@ -61,7 +62,7 @@ class base():
 		return w_star
 
 	def db(self,x, y):
-		db = 10 * np.log10(x / y)    
+		db = 10 * np.log10(x / y)  
 		return db
  
 	def rho_checker(self,rho,lamb,eta):
@@ -161,7 +162,7 @@ class base():
 		for u in Ut:
 			ut = np.reshape(u,(len(u),1)) 
 			um = np.reshape(u,(1,len(u)))
-			lip =abs(um@ut)
+			lip = abs(um@ut)
 			if lip > L_max:
 				L_max  = lip[0][0]
 		small_eig, big_eig = self.U_eigenvalue(M_tilde)
@@ -306,7 +307,6 @@ class base():
 				flag = False
 			last_length = now_length
 		if len(connected_node) == m:
-			print("Your graph is not disjoint")
 			return False
 		else:
 			print("Your graph is disjoint. connected nodes:",now_length)
@@ -344,6 +344,8 @@ class base():
 			this_error = self.db(mean(each_errors),L2)
 			return this_error
 		except:
+			print("error in system mismatch")
+			print(w_all)
 			return 0
 	
 	def error_distributed_2(self,w_all,w_star,N,L2,m):
@@ -415,10 +417,13 @@ class base():
 			d_all += np.random.normal(loc= 0,scale = variance_s**(0.5),size = (m,1))
 		L2 = np.dot(w_star.T,w_star)[0][0]
 		graph_flag = True
+		i = 0
 		while graph_flag:
 			graph = self.undirected_graph(m,r_i)
 			graph_flag = self.disjoint_checker(graph,m)
+			i += 1
 		w_all = self.make_w(m,N,w_zero)
+		print(w_star)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 	
 	def make_variables_noise_after_2_deviated_average(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise,normal_distribution,w_zero,average_of_u):

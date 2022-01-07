@@ -3,3 +3,8 @@
 .history
 ./modules/__pycache__
 *.pdf
+*.png
+*.log
+/samples
+/journal_graph
+/.vscode
