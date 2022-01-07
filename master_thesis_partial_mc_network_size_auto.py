@@ -102,25 +102,24 @@ class DistributedUpdates(update_functions):
         # error_l1, w_l1 = self.pg_extra_l1(U_all, d_all, w_star, L2, self.N, self.m,self.r_i, 0.04/self.m, 2, 0.09, self.iteration, graph, w_all, 0, 0.05, True, animation_flag)
         # error_pmc, pmc_w = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, self.m, self.r_i, 0.05/self.m, 0.1, 8.9/self.m, self.iteration, graph, w_all, 0.05, True, animation_flag)
         # error_pmc, pmc_w = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, self.m, self.r_i, 0.1/self.m, 0.1, 8.9/self.m, self.iteration, graph, w_all, 0.05, True, animation_flag)
-        sparsity_list = []
+        network_list = []
         error_list = []
-        for sparsity_i in range(10):
+        for network_size in range(10):
             best_error_2_list = []
             for i in range(100):
-                sparsity = (sparsity_i + 1) * 5
-                print(sparsity)
-                w, w_star, w_all, U_all, d_all, L2, graph = self.make_variables_noise_after_2(self.N, self.m, self.r_i,\
-                sparsity, self.how_weakly_sparse, self.w_noise, self.normal_distribution, self.w_zero)
+                network_size_i = 10 * (1 + network_size)
+                w, w_star, w_all, U_all, d_all, L2, graph = self.make_variables_noise_after_2(self.N, network_size_i, self.r_i,\
+                self.sparsity_percentage, self.how_weakly_sparse, self.w_noise, self.normal_distribution, self.w_zero)
                 optimal_lamb_1 = 0
                 optimal_lamb_2 = 0
                 best_error = 0
                 for i in range(12):
                     this_lamb = 10 ** (i - 10)
-                    error_pmc, w_pmc = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, self.m, self.r_i, this_lamb/self.m, 0.1, 8.9/self.m, self.iteration, graph, w_all, 0.05, False, False)
+                    error_pmc, w_pmc = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb/network_size_i, 0.1, 8.9/network_size_i, self.iteration, graph, w_all, 0.05, False, False)
                     if error_pmc != None:
                         if error_pmc[-1] < best_error:
                             best_error = error_pmc[-1]
-                            optimal_lamb_1 = this_lamb/self.m
+                            optimal_lamb_1 = this_lamb/network_size_i
                 print(best_error,optimal_lamb_1)
                 best_error_2 = 0
                 for j in range(55):
@@ -129,16 +128,16 @@ class DistributedUpdates(update_functions):
                     else:
                         this_lamb = optimal_lamb_1 * (j - 45)
                     print(this_lamb)
-                    error_pmc, w_pmc = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, self.m, self.r_i, this_lamb/self.m, 0.1, 8.9/self.m, self.iteration, graph, w_all, 0.05, False, False)
+                    error_pmc, w_pmc = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb/network_size_i, 0.1, 8.9/network_size_i, self.iteration, graph, w_all, 0.05, False, False)
                     if error_pmc != None:
                         if error_pmc[-1] < best_error_2:
                             best_error_2 = error_pmc[-1]
-                            optimal_lamb_2 = this_lamb/self.m
+                            optimal_lamb_2 = this_lamb/network_size_i
                 print(best_error_2,optimal_lamb_2)
                 best_error_2_list.append(best_error_2)
-            sparsity_list.append(sparsity)
+            network_list.append(network_size_i)
             error_list.append(sum(best_error_2_list)/len(best_error_2_list))
-        plt.plot(sparsity_list, error_list,label="System Mismatch")
+        plt.plot(network_list, error_list, label="System Mismatch")
 
         if animation_flag:
             all_variables = []
@@ -166,11 +165,11 @@ class DistributedUpdates(update_functions):
             plt.plot(w_star[1], w_star[2], "o", color="black", label="w*")
             plt.show()
         else:
-            plt.xlabel("Sparsity Percentage", fontsize=16)
+            plt.xlabel("Sparsity Percentage (%)", fontsize=16)
             plt.ylabel("System Mismatch (dB)", fontsize=16)
             plt.grid(which="major")
             plt.legend(fontsize=16)
-            plt.savefig('master_thesis_pmc_sparsity.pdf')
+            plt.savefig('master_thesis_pmc_network_size.pdf')
             plt.show()
             # plt.legend()
 
