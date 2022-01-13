@@ -834,7 +834,7 @@ class update_functions(base):
 		return np.mean(w_all,axis = 0)
 
 
-	def pg_extra_approximate_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,decay):
+	def pg_extra_approximate_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,decay,graph_plot=True):
 		average_error = []
 		# average_variance = []
 		# average_convergence = []
@@ -866,7 +866,8 @@ class update_functions(base):
 			# if i % 100 == 0:
 			# 	print(f"iteration: {i}")
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = "PG-EXTRA with AMC penalty")
+		if graph_plot:
+			plt.plot(times,average_error,label = "PG-EXTRA with AMC penalty")
 		# plt.title("convergence over iteration")
 		# plt.show()
 		return average_error,np.mean(w_all_before,axis = 0)
@@ -2058,7 +2059,7 @@ class update_functions(base):
 		plt.plot(times,average_error,label = 'ATC PG-EXTRA (2) with ' + r"$\ell_1$"+' penalty')
 		return np.mean(w_all_next,axis = 0)
 
-	def prox_dgd(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
+	def prox_dgd(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all,graph_plot=True):
 		average_error = []
 		w_all = copy.deepcopy(w_all)
 		w_all_next = copy.deepcopy(w_all)
@@ -2069,7 +2070,7 @@ class update_functions(base):
 		lip = max(LA.eig(Ut.T@Ut)[0])
 		Ls = lip
 		c_tilde_min = min(LA.eig(c_tilde)[0])
-		eta = (c_tilde_min+1)/Ls
+		eta = 0.4*(c_tilde_min+1)/Ls
 		print("proxdgd eta",eta)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
@@ -2077,10 +2078,11 @@ class update_functions(base):
 			w_all_prox = self.prox_dgd_update(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,lamb,eta,i)
 			w_all_before = copy.deepcopy(w_all_next)
 			w_all_next = self.all_extra_mc(Ut,d,w_all_prox,lamb,eta,rho)
-			if i %100 == 0:
-				print("iteration:",i)
+			bar = '='*int(100*i/iteration) + ("=" if i == 100 else ">")  + "."*(100-int(100*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
+			print(f"\r\033[K[{bar}] {(i+1)/iteration*100:.02f}% ({i+1}/{iteration})", end="")
 		times = range(len(average_error))
-		plt.plot(times,average_error,label = 'Prox DGD with MC penalty')
+		if graph_plot:
+			plt.plot(times,average_error,label = 'Prox DGD with MC penalty')
 		return average_error
 
 	def prox_dgd_consensus_graph(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
