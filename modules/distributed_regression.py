@@ -887,7 +887,7 @@ class update_functions(base):
 		c_tilde = (1/2)*(np.eye(len(c))+c)
 		c_tilde_min = min(LA.eig(c_tilde)[0])
 		largest_rho = 1 - lamb
-		if self.partial_convexity_checker(largest_rho,Ut):
+		if self.partial_convexity_checker(largest_rho,Ut) and largest_rho > 0:
 			eta = self.partial_eta_calculator(Ut,eta_input,c_tilde_min,lamb,largest_rho)
 			w_all_next_list = []
 			for i in range(iteration):
@@ -901,7 +901,7 @@ class update_functions(base):
 					w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_partial(Ut,w_all_next,d,lamb,eta,largest_rho,m)-self.gradient_partial(Ut,w_all_before,d,lamb,eta,largest_rho,m))
 				w_all_before = copy.deepcopy(w_all_next)
 				w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta)
-				bar = '='*int(100*i/iteration) + ("=" if i == 100 else ">")  + "."*(100-int(100*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
+				bar = '='*int(10*i/iteration) + ("=" if i == 10 else ">")  + "."*(10-int(10*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
 				print(f"\r\033[K[{bar}] {(i+1)/iteration*100:.02f}% ({i+1}/{iteration})", end="")
 				w_all_next_list.append(w_all_next[:,1:4])
 				
@@ -1465,7 +1465,7 @@ class update_functions(base):
 			w_all_prox = self.extra_l1_share(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,eta,i)
 			w_all_before = copy.deepcopy(w_all_next)
 			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,lamb,eta)
-			bar = '='*int(100*i/iteration) + ("=" if i == 100 else ">")  + "."*(100-int(100*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
+			bar = '='*int(10*i/iteration) + ("=" if i == 10 else ">")  + "."*(10-int(10*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
 			print(f"\r\033[K[{bar}] {(i+1)/iteration*100:.02f}% ({i+1}/{iteration})", end="")
 			w_all_next_list.append(w_all_next[:,1:4])			
 		if graph:

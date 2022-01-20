@@ -423,7 +423,6 @@ class base():
 			graph_flag = self.disjoint_checker(graph,m)
 			i += 1
 		w_all = self.make_w(m,N,w_zero)
-		print(w_star)
 		return w,w_star,w_all,U_all,d_all,L2,graph
 	
 	def make_variables_noise_after_2_deviated_average(self,N,m,r_i,sparsity_percentage,how_weakly_sparse,w_noise,normal_distribution,w_zero,average_of_u):
