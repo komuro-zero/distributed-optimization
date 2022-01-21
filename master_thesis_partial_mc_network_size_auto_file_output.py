@@ -14,10 +14,10 @@ import pickle
 class DistributedUpdates(update_functions):
     def __init__(self):
         """initializing setting parameters"""
-        self.N = 100
+        self.N = 10
         self.m = 9
         self.r_i = 8
-        self.iteration = 5000
+        self.iteration = 3000
         self.sparsity_percentage = 0.2
         self.lamb = 0.31
         self.eta = 0.0045
@@ -48,9 +48,13 @@ class DistributedUpdates(update_functions):
         network_list = []
         error_list = []
         error_list_l1 = []
+        error_list_mc = []
+        error_list_amc = []
         for network_size in range(10):
             best_error_3_list = []
             best_error_3_list_l1 = []
+            best_error_3_list_mc = []
+            best_error_3_list_amc = []
             for trials in range(10):
                 print(network_size+1, "/10", trials+1, "/10")
                 network_size_i = 10 * (1 + network_size)
@@ -62,12 +66,24 @@ class DistributedUpdates(update_functions):
                 optimal_lamb_l1_1 = 0
                 optimal_lamb_l1_2 = 0
                 optimal_lamb_l1_3 = 0
+                optimal_lamb_mc_1 = 0
+                optimal_lamb_mc_2 = 0
+                optimal_lamb_mc_3 = 0
+                optimal_lamb_amc_1 = 0
+                optimal_lamb_amc_2 = 0
+                optimal_lamb_amc_3 = 0
                 best_error = 0
                 best_error_2 = 0
                 best_error_3 = 0
                 best_error_l1_1 = 0
                 best_error_l1_2 = 0
                 best_error_l1_3 = 0
+                best_error_mc_1 = 0
+                best_error_mc_2 = 0
+                best_error_mc_3 = 0
+                best_error_amc_1 = 0
+                best_error_amc_2 = 0
+                best_error_amc_3 = 0
                 for i in range(12):
                     this_lamb = 10 ** (i - 10)
                     error_pmc, w_pmc = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb/network_size_i, 0.1, 8.9/network_size_i, self.iteration, graph, w_all, 0.05, False, False)
@@ -79,6 +95,14 @@ class DistributedUpdates(update_functions):
                     if w_l1_error[-1] < best_error_l1_1:
                         best_error_l1_1 = w_l1_error[-1]
                         optimal_lamb_l1_1 = this_lamb
+                    w_amc_error, wamc = self.pg_extra_approximate_mc(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb/network_size_i, 0.027, 10**-8/self.m, self.iteration, graph, w_all, 0.05,False)
+                    if w_amc_error[-1] < best_error_amc_1:
+                        best_error_amc_1 = w_amc_error[-1]
+                        optimal_lamb_amc_1 = this_lamb
+                    w_mc_error = self.prox_dgd(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb/network_size_i, 1, 35/network_size_i ,self.iteration, graph, w_all,False)
+                    if w_mc_error[-1] < best_error_mc_1:
+                        best_error_mc_1 = w_mc_error[-1]
+                        optimal_lamb_mc_1 = this_lamb
                 best_increment = 0
                 for j in range(19):
                     if j < 10:
@@ -95,15 +119,31 @@ class DistributedUpdates(update_functions):
                             best_increment = increment
                     if j < 10:
                         this_lamb_l1 = optimal_lamb_l1_1 * 0.1 * (j + 1)
-                        increment = j + 1
                     else:
                         this_lamb_l1 = optimal_lamb_l1_1 * (j - 8)
-                        increment = j - 8
                     w_l1_error, wl1 = self.pg_extra_l1(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb_l1/network_size_i, 1, 0.09, self.iteration, graph, w_all, 0, 0.75, False, False)
                     if w_l1_error[-1] < best_error_l1_2:
                         best_error_l1_2 = w_l1_error[-1]
                         optimal_lamb_l1_2 = this_lamb_l1
                         best_increment_l1 = increment
+                    if j < 10:
+                        this_lamb_amc = optimal_lamb_amc_1 * 0.1 * (j + 1)
+                    else:
+                        this_lamb_amc = optimal_lamb_amc_1 * (j - 8)
+                    w_amc_error, wamc = self.pg_extra_approximate_mc(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb_amc/network_size_i, 0.027, 10**-8/self.m, self.iteration, graph, w_all, 0.05,False)
+                    if w_amc_error[-1] < best_error_amc_2:
+                        best_error_amc_2 = w_amc_error[-1]
+                        optimal_lamb_amc_2 = this_lamb_amc
+                        best_increment_amc = increment
+                    if j < 10:
+                        this_lamb_mc = optimal_lamb_mc_1 * 0.1 * (j + 1)
+                    else:
+                        this_lamb_mc = optimal_lamb_mc_1 * (j - 8)
+                    w_mc_error = self.prox_dgd(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb_mc/network_size_i, 1, 35/network_size_i ,self.iteration, graph, w_all,False)
+                    if w_mc_error[-1] < best_error_mc_2:
+                        best_error_mc_2 = w_mc_error[-1]
+                        optimal_lamb_mc_2 = this_lamb_mc
+                        best_increment_mc = increment
                 for k in range(19):
                     this_lamb = (optimal_lamb_2 - optimal_lamb_2/best_increment) + (k + 1) * 0.1 * optimal_lamb_2/best_increment
                     error_pmc, w_pmc = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb/network_size_i, 0.1, 8.9/network_size_i, self.iteration, graph, w_all, 0.05, False, False)
@@ -116,19 +156,41 @@ class DistributedUpdates(update_functions):
                     if w_l1_error[-1] < best_error_l1_3:
                         best_error_l1_3 = w_l1_error[-1]
                         optimal_lamb_l1_3 = this_lamb_l1
+                    this_lamb_amc = (optimal_lamb_amc_2 - optimal_lamb_amc_2/best_increment_amc) + (k + 1) * 0.1 * optimal_lamb_amc_2/best_increment_amc
+                    w_amc_error, wamc = self.pg_extra_approximate_mc(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb_amc/network_size_i, 0.027, 10**-8/self.m, self.iteration, graph, w_all, 0.05,False)
+                    if w_amc_error[-1] < best_error_amc_3:
+                        best_error_amc_3 = w_amc_error[-1]
+                        optimal_lamb_amc_3 = this_lamb_amc
+                    this_lamb_mc = (optimal_lamb_mc_2 - optimal_lamb_mc_2/best_increment_mc) + (k + 1) * 0.1 * optimal_lamb_mc_2/best_increment_mc
+                    w_mc_error = self.prox_dgd(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb_mc/network_size_i, 1, 35/network_size_i ,self.iteration, graph, w_all,False)
+                    if w_mc_error[-1] < best_error_mc_3:
+                        best_error_mc_3 = w_mc_error[-1]
+                        optimal_lamb_mc_3 = this_lamb_mc
                 print("pmc",best_error_3,optimal_lamb_3,optimal_lamb_3*network_size_i)
                 print("l1",best_error_l1_3,optimal_lamb_l1_3,optimal_lamb_l1_3*network_size_i)
+                print("mc",best_error_mc_3,optimal_lamb_mc_3,optimal_lamb_mc_3*network_size_i)
+                print("amc",best_error_amc_3,optimal_lamb_amc_3,optimal_lamb_amc_3*network_size_i)
                 best_error_3_list.append(best_error_3)
                 best_error_3_list_l1.append(best_error_l1_3)
+                best_error_3_list_mc.append(best_error_mc_3)
+                best_error_3_list_amc.append(best_error_amc_3)
             network_list.append(network_size_i)
             error_list.append(sum(best_error_3_list)/len(best_error_3_list))
             error_list_l1.append(sum(best_error_3_list_l1)/len(best_error_3_list_l1))
-        # plt.plot(network_list, error_list_l1, marker="D", markersize=6, markeredgewidth=3, label=r"$\ell_1$")
-        # plt.plot(network_list, error_list, marker="D", markersize=6, markeredgewidth=3, label="PMC")
+            error_list_mc.append(sum(best_error_3_list_mc)/len(best_error_3_list_mc))
+            error_list_amc.append(sum(best_error_3_list_amc)/len(best_error_3_list_amc))
+        plt.plot(network_list, error_list_l1, marker="D", markersize=6, markeredgewidth=3, label=r"$\ell_1$")
+        plt.plot(network_list, error_list_mc, marker="D", markersize=6, markeredgewidth=3, label="MC")
+        plt.plot(network_list, error_list_amc, marker="D", markersize=6, markeredgewidth=3, label="AMC")
+        plt.plot(network_list, error_list, marker="D", markersize=6, markeredgewidth=3, label="PMC")
         with open("network_l1.txt","wb") as f:
             pickle.dump(error_list_l1,f)
         with open("network_pmc.txt","wb") as f:
             pickle.dump(error_list,f)
+        with open("network_amc.txt","wb") as f:
+            pickle.dump(error_list_amc,f)
+        with open("network_mc.txt","wb") as f:
+            pickle.dump(error_list_mc,f)
         if animation_flag:
             all_variables = []
             fig = plt.figure()

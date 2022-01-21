@@ -851,6 +851,7 @@ class update_functions(base):
 		lip = max(LA.eig(Ut.T@Ut)[0])
 		Ls = (1-rho)*lip+ rho
 		eta = 2*c_tilde_min/Ls
+		rho = 1/lamb
 		# print(eta)
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
@@ -2072,6 +2073,7 @@ class update_functions(base):
 		c_tilde_min = min(LA.eig(c_tilde)[0])
 		eta = 0.4*(c_tilde_min+1)/Ls
 		print("proxdgd eta",eta)
+		rho = 1/lamb
 		for i in range(iteration):
 			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
 			w_all_prox_before = copy.deepcopy(w_all_prox)
