@@ -851,28 +851,32 @@ class update_functions(base):
 		lip = max(LA.eig(Ut.T@Ut)[0])
 		Ls = (1-rho)*lip+ rho
 		eta = 2*c_tilde_min/Ls
-		rho = 1/lamb
-		# print(eta)
-		for i in range(iteration):
-			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
-			# average_convergence.append(LA.norm(w_all_before-w_all_next))
-			# average_variance.append(np.var(w_all_before,axis = 1))
-			w_all_prox_before = copy.deepcopy(w_all_prox)
-			if i == 0:
-				w_all_prox = c@w_all_before-eta*(self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho,m))
-			else:
-				w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho,m))
-			w_all_before = copy.deepcopy(w_all_next)
-			w_all_next = self.all_extra_L1(Ut,d,w_all_prox,eta,lamb)
-			# if i % 100 == 0:
-			# 	print(f"iteration: {i}")
-		times = range(len(average_error))
-		if graph_plot:
-			plt.plot(times,average_error,label = "PG-EXTRA with AMC penalty")
-		# plt.title("convergence over iteration")
-		# plt.show()
-		return average_error,np.mean(w_all_before,axis = 0)
-	
+		if lamb > 0:
+			rho = 1
+			# print(eta)
+			
+			for i in range(iteration):
+				average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+				# average_convergence.append(LA.norm(w_all_before-w_all_next))
+				# average_variance.append(np.var(w_all_before,axis = 1))
+				w_all_prox_before = copy.deepcopy(w_all_prox)
+				if i == 0:
+					w_all_prox = c@w_all_before-eta*(self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho,m))
+				else:
+					w_all_prox = c@w_all_next + w_all_prox_before - c_tilde@w_all_before - eta*(self.gradient_soft(Ut,w_all_next,d,lamb,eta,rho,m)-self.gradient_soft(Ut,w_all_before,d,lamb,eta,rho,m))
+				w_all_before = copy.deepcopy(w_all_next)
+				w_all_next = self.all_extra_L1(Ut,d,w_all_prox,eta,lamb)
+				# if i % 100 == 0:
+				# 	print(f"iteration: {i}")
+			times = range(len(average_error))
+			if graph_plot:
+				plt.plot(times,average_error,label = "PG-EXTRA with AMC penalty")
+			# plt.title("convergence over iteration")
+			# plt.show()
+			return average_error,np.mean(w_all_before,axis = 0)
+		else:
+			return None,None
+
 	def pg_extra_partial_mc(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta_input,rho,iteration,c,w_all,decay,graph=True,animation=False):
 		average_error = []
 		# average_variance = []
@@ -2072,20 +2076,22 @@ class update_functions(base):
 		Ls = lip
 		c_tilde_min = min(LA.eig(c_tilde)[0])
 		eta = 0.4*(c_tilde_min+1)/Ls
-		print("proxdgd eta",eta)
-		rho = 1/lamb
-		for i in range(iteration):
-			average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
-			w_all_prox_before = copy.deepcopy(w_all_prox)
-			w_all_prox = self.prox_dgd_update(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,lamb,eta,i)
-			w_all_before = copy.deepcopy(w_all_next)
-			w_all_next = self.all_extra_mc(Ut,d,w_all_prox,lamb,eta,rho)
-			bar = '='*int(100*i/iteration) + ("=" if i == 100 else ">")  + "."*(100-int(100*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
-			print(f"\r\033[K[{bar}] {(i+1)/iteration*100:.02f}% ({i+1}/{iteration})", end="")
-		times = range(len(average_error))
-		if graph_plot:
-			plt.plot(times,average_error,label = 'Prox DGD with MC penalty')
-		return average_error
+		if lamb > 0:
+			rho = 1
+			for i in range(iteration):
+				average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
+				w_all_prox_before = copy.deepcopy(w_all_prox)
+				w_all_prox = self.prox_dgd_update(Ut,d,c,c_tilde,w_all_next,w_all_before,w_all_prox_before,lamb,eta,i)
+				w_all_before = copy.deepcopy(w_all_next)
+				w_all_next = self.all_extra_mc(Ut,d,w_all_prox,lamb,eta,rho)
+				bar = '='*int(10*i/iteration) + ("=" if i == 10 else ">")  + "."*(10-int(10*i/iteration)-1)    # プログレスバーの先頭の表示を工夫
+				print(f"\r\033[K[{bar}] {(i+1)/iteration*100:.02f}% ({i+1}/{iteration})", end="")
+			times = range(len(average_error))
+			if graph_plot:
+				plt.plot(times,average_error,label = 'Prox DGD with MC penalty')
+			return average_error
+		else:
+			return None
 
 	def prox_dgd_consensus_graph(self,Ut,d,w_star,L2,N,m,r_i,lamb,eta,rho,iteration,c,w_all):
 		average_error = []
@@ -2184,7 +2190,7 @@ class update_functions(base):
 			gradient[i] = (ui@(uti@wi-d[i])-(rho)*ui@uti@wi+rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
 		return gradient
 	
-	def gradient_partial(self,Ut,w_now,d,lamb,eta,rho,m):
+	def gradient_partial(self,Ut,w_now,d,lamb,eta,rho,m,individual=True):
 		w = copy.deepcopy(w_now)
 		w_soft = copy.deepcopy(w_now)
 		gradient = copy.deepcopy(w)
@@ -2195,6 +2201,8 @@ class update_functions(base):
 			uti_norm = ui_norm.T
 			wi = np.reshape(w[i],(len(w[i]),1))
 			P = ui_norm@uti_norm
+			if individual:
+				rho = uti@ui
 			# P = (ui@uti)/((uti@ui)[0][0])
 			# gradient[i] = (ui@(uti@wi-d[i])-(rho)*wi+rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
 			gradient[i] = (ui@(uti@wi-d[i])-(rho)*P@wi + rho*(np.reshape(self.one_extra_L1(Ut[i],d[i],P@w_soft[i],lamb,1/rho),(len(wi),1)))).T[0]
