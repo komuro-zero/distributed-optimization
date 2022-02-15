@@ -16,7 +16,7 @@ class DistributedUpdates(update_functions):
         """initializing setting parameters"""
         self.N = 10
         self.m = 9
-        self.r_i = 8
+        self.r_i = 2
         self.iteration = 3000
         self.sparsity_percentage = 0.2
         self.lamb = 0.31
@@ -50,14 +50,16 @@ class DistributedUpdates(update_functions):
         error_list_l1 = []
         error_list_mc = []
         error_list_amc = []
-        for network_size in range(10):
+        total_trials = 100
+        network_size_iter = 7
+        for network_size in range(network_size_iter):
             best_error_3_list = []
             best_error_3_list_l1 = []
             best_error_3_list_mc = []
             best_error_3_list_amc = []
-            for trials in range(1):
-                print(network_size+1, "/10", trials+1, "/10")
-                network_size_i = 10 * (1 + network_size)
+            for trials in range(total_trials):
+                print(network_size+1, f"/{network_size_iter}", trials+1, f"/{total_trials}")
+                network_size_i = (3 + network_size)
                 w, w_star, w_all, U_all, d_all, L2, graph = self.make_variables_noise_after_2(self.N, network_size_i, self.r_i,\
                 self.sparsity_percentage, self.how_weakly_sparse, self.w_noise, self.normal_distribution, self.w_zero)
                 optimal_lamb_1 = 0
@@ -152,6 +154,8 @@ class DistributedUpdates(update_functions):
                             best_error_mc_2 = w_mc_error[-1]
                             optimal_lamb_mc_2 = this_lamb_mc
                             best_increment_mc = increment
+                if best_increment_mc == 0:
+                    best_increment_mc = 1
                 for k in range(19):
                     this_lamb = (optimal_lamb_2 - optimal_lamb_2/best_increment) + (k + 1) * 0.1 * optimal_lamb_2/best_increment
                     error_pmc, w_pmc = self.pg_extra_partial_mc(U_all, d_all, w_star, L2, self.N, network_size_i, self.r_i, this_lamb/network_size_i, 0.1, 8.9/network_size_i, self.iteration, graph, w_all, 0.05, False, False)
@@ -194,13 +198,15 @@ class DistributedUpdates(update_functions):
         plt.plot(network_list, error_list_mc, marker="D", markersize=6, markeredgewidth=3, label="MC")
         plt.plot(network_list, error_list_amc, marker="D", markersize=6, markeredgewidth=3, label="AMC")
         plt.plot(network_list, error_list, marker="D", markersize=6, markeredgewidth=3, label="PMC")
-        with open("network_l1.txt","wb") as f:
+        plt.legend()
+        plt.show()
+        with open(f"network_l1_{total_trials}.txt","wb") as f:
             pickle.dump(error_list_l1,f)
-        with open("network_pmc.txt","wb") as f:
+        with open(f"network_pmc_{total_trials}.txt","wb") as f:
             pickle.dump(error_list,f)
-        with open("network_amc.txt","wb") as f:
+        with open(f"network_amc_{total_trials}.txt","wb") as f:
             pickle.dump(error_list_amc,f)
-        with open("network_mc.txt","wb") as f:
+        with open(f"network_mc_{total_trials}.txt","wb") as f:
             pickle.dump(error_list_mc,f)
         if animation_flag:
             all_variables = []

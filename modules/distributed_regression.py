@@ -854,7 +854,6 @@ class update_functions(base):
 		if lamb > 0:
 			rho = 1
 			# print(eta)
-			
 			for i in range(iteration):
 				average_error.append(self.error_distributed(w_all_before,w_star,N,L2,m))
 				# average_convergence.append(LA.norm(w_all_before-w_all_next))
